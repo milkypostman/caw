@@ -3,6 +3,7 @@
 from ppmodule import ppinit, ppshade, ppicon, ppfont, ppfontsize, ppclear
 import Xlib
 import Xlib.display
+import Xlib.error
 import Xlib.protocol.event
 import collections
 import heapq
@@ -20,6 +21,7 @@ class Widget(object):
     def __init__(self):
         super(Widget, self).__init__()
         self.width = 0
+        self.min_width = 0
         self.x = 0
         self.parent = None
 
@@ -30,6 +32,72 @@ class Widget(object):
         """ reimplement in subclass """
         pass
 
+class Systray(Widget):
+    def setup(self, icon_size=None):
+        self.icon_size = icon_size
+        if icon_size is None:
+            if self.parent.height >= 24:
+                self.icon_size = 24
+            elif self.parent.height >= 16:
+                self.icon_size = 16
+            else:
+                self.icon_size = self.parent.height
+
+        self.error_handler = Xlib.error.CatchError()
+        self.parent.events[X.ClientMessage].append(self._clientmessage)
+        self.parent.events[X.ConfigureNotify].append(self._configurenotify)
+        self.parent.events[X.DestroyNotify].append(self._destroynotify)
+
+        # create a system tray selection owner window
+        dsp = self.parent.display
+        self._NET_SYSTEM_TRAY_OPCODE = dsp.intern_atom("_NET_SYSTEM_TRAY_OPCODE")
+        manager = dsp.intern_atom("MANAGER")
+        selection = dsp.intern_atom("_NET_SYSTEM_TRAY_S%d" % dsp.get_default_screen())
+
+        self._window = self.parent.root.create_window(-1, -1, 1, 1, 0, self.parent.screen.root_depth)
+        self._window.set_selection_owner(selection, X.CurrentTime)
+        self.parent.send_event(self.parent.root, manager, [X.CurrentTime, selection, self._window.id], (X.StructureNotifyMask))
+
+        self.tasks = {}
+
+    def _destroynotify(self, event):
+        if event.window.id in self.tasks:
+            del self.tasks[event.window.id]
+            self.min_width=self.icon_size*len(self.tasks)
+            self.parent.update()
+
+    def _clientmessage(self, event):
+        print "********* CLIENT MESSAGE **************"
+        if event.window == self._window:
+            data = event.data[1][1] # opcode
+            task = event.data[1][2] # taskid
+            if event.client_type == self._NET_SYSTEM_TRAY_OPCODE and data == 0:
+                print "new task!"
+                taskwin = self.parent.display.create_resource_object("window", task)
+                taskwin.reparent(self.parent.window.id, 0, 0)
+                taskwin.change_attributes(event_mask=(X.ExposureMask|X.StructureNotifyMask))
+                self.tasks[task] = dict(window=taskwin, x=0, y=0, width=self.icon_size, height=self.icon_size)
+                self.min_width=self.icon_size*len(self.tasks)
+                self.parent.update()
+
+    def _configurenotify(self, event):
+        print "********* CONFIGURE NOTIFY **************"
+        if event.window.id in self.tasks:
+            task = self.tasks[event.window.id]
+            task['window'].configure(onerror=self.error_handler, width=task['width'], height=task['height'])
+
+    def draw(self):
+        curx = self.x
+        for task in self.tasks:
+            print "drawing task:",task
+            t = self.tasks[task]
+            t['x'] = curx
+            t['y'] = (self.parent.height - t['height'])/2
+            t['window'].configure(onerror=self.error_handler, x=t['x'], y=t['y'], width=t['width'], height=t['height'])
+            t['window'].map(onerror=self.error_handler)
+            curx += t['width']
+
+
 class Text(Widget):
     def __init__(self, text="undefined", color=None):
         super(Text, self).__init__()
@@ -37,7 +105,7 @@ class Text(Widget):
         self.color = color
 
     def setup(self):
-        self.width = self.parent.text_width(self.text)
+        self.min_width = self.parent.text_width(self.text)
 
     def draw(self):
         self.parent.draw_text(self.x, self.text, self.color)
@@ -73,7 +141,6 @@ class CPU(Widget):
 
     @classmethod
     def _update(cls, timeout=3):
-        print "CPU:_update"
         cls._file.seek(0)
         i = 0
         for line in cls._file:
@@ -107,13 +174,11 @@ class CPU(Widget):
 
     def _set_data(self, data):
         self._data = data
-        self.width = self.parent.text_width("%d%%" % self._data['usage'])
+        self.min_width = self.parent.text_width("%d%%" % self._data['usage'])
 
     data = property(_get_data, _set_data)
 
     def draw(self):
-        print "DRAWING:", self.x
-        print self._data
         self.parent.draw_text(self.x, "%d%%" % self._data['usage'])
 
 class Clock(Widget):
@@ -125,9 +190,8 @@ class Clock(Widget):
         self.update()
 
     def update(self):
-        print "Clock: update"
         self.text = time.strftime(self.format)
-        self.width = self.parent.text_width(self.text)
+        self.min_width = self.parent.text_width(self.text)
         self.parent.update();
         self.parent.schedule(1, self.update)
 
@@ -314,24 +378,27 @@ class Pynel(object):
 
     def _redraw(self, *_):
         print "drawing"
-        self._clear_panel(0, 0, self.width, self.height)
+        self.clear(0, 0, self.width, self.height)
         space = self.width
         leftx = 0
-        first = True
         for w in self.left:
+            wh = w.min_width
             w.x = leftx
+            w.width = wh
             w.draw()
             leftx += w.width
             space -= w.width
 
         rightx = self.width
         for w in self.right:
-            w.x = rightx - w.width
+            wh = w.min_width
+            w.x = rightx - wh
+            w.width = wh
             w.draw()
             rightx -= w.width
             space -= w.width
 
-    def _clear_panel(self, x1, y1, x2, y2):
+    def clear(self, x1, y1, x2, y2):
         ppclear(self.window.id, x1, y1, x2, y2)
 
     def draw_text(self, x, text, color=None):
@@ -350,7 +417,7 @@ class Pynel(object):
 if __name__ == "__main__":
     pynel = Pynel()
 
-    #pynel.left.append(Desktop())
+    pynel.left.append(Systray())
     pynel.right.append(Clock())
     pynel.right.append(Text(" | ", 0x00dd00))
     pynel.right.append(CPU(2))
