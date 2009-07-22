@@ -32,7 +32,6 @@ class Widget(object):
     def draw(self):
         pass
 
-"""
 class Desktop(Widget):
     def __init__(self, current_fg=None, fg=None, current_bg=None, bg=None):
         self.desktops = []
@@ -44,34 +43,62 @@ class Desktop(Widget):
         self.current_bg = 0x00ff00
 
     def setup(self):
-        self._NET_CURRENT_DESKTOP = self.parent.display.intern_atom("_NET_CURRENT_DESKTOP")
-        self._NET_WM_DESKTOP = self.parent.display.intern_atom("_NET_WM_DESKTOP")
-        self._NET_DESKTOP_NAMES = self.parent.display.intern_atom("_NET_DESKTOP_NAMES")
-        self._NET_NUMBER_OF_DESKTOPS = self.parent.display.intern_atom("_NET_NUMBER_OF_DESKTOPS")
+        print "setup"
+        a = self.parent.get_atoms([
+            "_NET_CURRENT_DESKTOP",
+            "_NET_WM_DESKTOP",
+            "_NET_DESKTOP_NAMES",
+            "UTF8_STRING",
+            "STRING",
+            "_NET_NUMBER_OF_DESKTOPS"])
+
+        for key,val in a.iteritems():
+            setattr(self, key, val)
+
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update)
         self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update)
         self._get_desktops()
-        if self.fg is None:
-            self.fg = self.parent.fg
-        if self.current_fg is None:
-            self.current_fg = self.parent.fg
+        #if self.fg is None:
+        #    self.fg = self.parent.fg
+        #if self.current_fg is None:
+        #    self.current_fg = self.parent.fg
 
-        if self.current_bg is not None or self.bg is not None:
-            self.gc = self.parent.root.create_gc()
+        #if self.current_bg is not None or self.bg is not None:
+        #    self.gc = self.parent.root.create_gc()
 
         self._update()
 
     def _get_desktops(self):
-        total = self.parent.root.get_full_property(self._NET_NUMBER_OF_DESKTOPS, 0).value[0]
-        names = self.parent.root.get_full_property(self._NET_DESKTOP_NAMES, 0)
-        if hasattr(names, "value"):
-            names = names.value.strip("\x00").split("\x00")
-        else:
-            names = []
-            for x in range(desktop.total):
-                names.append(str(x))
+        print "get desk"
+        totalc = xcb.xcb_get_property(self.parent.connection, 0,
+                self.parent.screen.root,
+                self._NET_NUMBER_OF_DESKTOPS,
+                const.CARDINAL,
+                0,
+                32)
+        namesc = xcb.xcb_get_property(self.parent.connection, 0,
+                self.parent.screen.root,
+                self._NET_DESKTOP_NAMES,
+                self.UTF8_STRING,
+                0,
+                32)
 
+        print self.STRING
+        print self.UTF8_STRING
+
+        totalrp = xcb.xcb_get_property_reply(self.parent.connection, totalc, None)
+        namesrp = xcb.xcb_get_property_reply(self.parent.connection, namesc, None)
+
+        total = ctypes.cast(xcb.xcb_get_property_value(totalrp),
+                ctypes.POINTER(ctypes.c_uint32 * xcb.xcb_get_property_value_length(totalrp))).contents[0]
+
+
+        names = ''.join(ctypes.cast(xcb.xcb_get_property_value(namesrp),
+            ctypes.POINTER(ctypes.c_char*xcb.xcb_get_property_value_length(namesrp))).contents).strip("\x00").split("\x00")
         self.desktops = names
+
+        xcb.free(totalrp)
+        xcb.free(namesrp)
 
         self.min_width = len(self._output())
 
@@ -94,17 +121,28 @@ class Desktop(Widget):
 
 
     def _update(self, event=None):
-        if event is None:
-            self.current = self.parent.root.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
+        currc = xcb.xcb_get_property(self.parent.connection, 0,
+                self.parent.screen.root,
+                self._NET_CURRENT_DESKTOP,
+                const.CARDINAL,
+                0,
+                32)
+        currrp = xcb.xcb_get_property_reply(self.parent.connection, currc, None)
+        self.current = ctypes.cast(xcb.xcb_get_property_value(currrp),
+                ctypes.POINTER(ctypes.c_uint32 * xcb.xcb_get_property_value_length(currrp))).contents[0]
+        xcb.free(currrp)
 
-        if hasattr(event, "window"):
-            try:
-                self.current = event.window.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
-            except:
-                try:
-                    self.current = event.window.get_full_property(self._BLACKBOX, 0).value[2]
-                except:
-                    self.current = 0
+        #if event is None:
+        #    self.current = self.parent.root.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
+
+        #if hasattr(event, "window"):
+        #    try:
+        #        self.current = event.window.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
+        #    except:
+        #        try:
+        #            self.current = event.window.get_full_property(self._BLACKBOX, 0).value[2]
+        #        except:
+        #            self.current = 0
 
         self.parent.update()
 
@@ -117,25 +155,25 @@ class Desktop(Widget):
                 out = "<" + name + ">"
                 color = self.current_fg
                 width = self.parent.text_width(out)
-                print width
-                if self.current_bg is not None:
-                    #self.gc.change(foreground=self.current_bg)
-                    #print curx, curx+width-1
-                    cfillrectangle(self.parent.window.id, self.current_bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+        #        if self.current_bg is not None:
+        #            #self.gc.change(foreground=self.current_bg)
+        #            #print curx, curx+width-1
+        #            #cfillrectangle(self.parent.window.id, self.current_bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
             else:
                 out = " " + name + " "
                 color = self.fg
                 width = self.parent.text_width(out)
-                if self.bg is not None:
-                    #self.gc.change(foreground=self.bg)
-                    #print curx, curx+width
-                    #self.parent.window.fill_rectangle(self.gc, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
-                    cfillrectangle(self.parent.window.id, self.bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+        #        if self.bg is not None:
+        #            #self.gc.change(foreground=self.bg)
+        #            #print curx, curx+width
+        #            #self.parent.window.fill_rectangle(self.gc, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+        #            #cfillrectangle(self.parent.window.id, self.bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
 
             self.parent.draw_text(curx, out, color)
             curx += self.parent.text_width(out)
 
 
+"""
 
 class Systray(Widget):
     def setup(self, icon_size=None):
@@ -200,9 +238,8 @@ class Systray(Widget):
             t['window'].configure(onerror=self.error_handler, x=t['x'], y=t['y'], width=t['width'], height=t['height'])
             t['window'].map(onerror=self.error_handler)
             curx += t['width']
+        """
 
-
-"""
 class Text(Widget):
     def __init__(self, text="undefined", color=None):
         super(Text, self).__init__()
@@ -214,8 +251,6 @@ class Text(Widget):
 
     def draw(self):
         self.parent.draw_text(self.x, self.text, self.color)
-
-"""
 
 class CPU(Widget):
     _initialized = False
@@ -287,7 +322,6 @@ class CPU(Widget):
     def draw(self):
         self.parent.draw_text(self.x, "%d%%" % self._data['usage'])
 
-"""
 class Clock(Widget):
     def __init__(self, format="%Y.%m.%d %H:%M:%S"):
         super(Clock, self).__init__()
@@ -310,6 +344,7 @@ xcb_colormap_t = ctypes.c_uint32
 xcb_visualid_t = ctypes.c_uint32
 xcb_pixmap_t = ctypes.c_uint32
 xcb_atom_t = ctypes.c_uint32
+xcb_timestamp_t = ctypes.c_uint32
 
 class xcb_intern_atom_reply_t(ctypes.Structure):
    _fields_ = [('response_type', ctypes.c_uint8),
@@ -370,8 +405,20 @@ class xcb_generic_event_t(ctypes.Structure):
             ('response_type', ctypes.c_uint8),
             ('pad0', ctypes.c_uint8),
             ('sequence', ctypes.c_uint16),
-            ('pad', ctypes.c_uint32),
+            ('pad', ctypes.c_uint32*7),
             ('full_sequence', ctypes.c_uint32),
+            ]
+
+class xcb_property_notify_event_t(ctypes.Structure):
+    _fields_ = [
+            ('response_type', ctypes.c_uint8),
+            ('pad0', ctypes.c_uint8),
+            ('sequence', ctypes.c_uint16),
+            ('window', xcb_window_t),
+            ('atom', xcb_atom_t),
+            ('time', xcb_timestamp_t),
+            ('state', ctypes.c_uint8),
+            ('pad1', ctypes.c_uint8*3)
             ]
 
 class xcb_size_hints_t(ctypes.Structure):
@@ -448,6 +495,29 @@ class cairo_font_extents_t(ctypes.Structure):
             ('max_y_advance', ctypes.c_double),
             ]
 
+class xcb_get_window_attributes_reply_t(ctypes.Structure):
+    _fields_ = [
+            ('response_type', ctypes.c_uint8),
+            ('backing_store', ctypes.c_uint8),
+            ('sequence', ctypes.c_uint16),
+            ('length', ctypes.c_uint32), 
+            ('visual', xcb_visualid_t), 
+            ('_class', ctypes.c_uint16), 
+            ('bit_gravity', ctypes.c_uint8),
+            ('win_gravity', ctypes.c_uint8),
+            ('backing_planes', ctypes.c_uint32), 
+            ('backing_pixel', ctypes.c_uint32),
+            ('save_under', ctypes.c_uint8), 
+            ('map_is_installed', ctypes.c_uint8),
+            ('map_state', ctypes.c_uint8),
+            ('override_redirect', ctypes.c_uint8),
+            ('colormap', xcb_colormap_t),
+            ('all_event_masks', ctypes.c_uint32),
+            ('your_event_mask', ctypes.c_uint32),
+            ('do_not_propagate_mask', ctypes.c_uint16),
+            ('pad0', ctypes.c_uint8 * 2)
+            ]
+
 xcb = ctypes.cdll.LoadLibrary('libxcb.so')
 xcbatom = ctypes.cdll.LoadLibrary('libxcb-atom.so')
 xcbicccm = ctypes.cdll.LoadLibrary('libxcb-icccm.so')
@@ -499,100 +569,11 @@ class Pynel(object):
         self.right = []
 
         self._update = False
+        self._background_needs_update = 0
 
-        self.root_map = None
-
-        self.window = xcb.xcb_generate_id(self.connection)
-        xcb.xcb_create_window(self.connection,
-                self.screen.root_depth,
-                self.window,
-                self.screen.root,
-                self.x, self.y,
-                self.width, self.height,
-                0,
-                const.XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                self.screen.root_visual,
-                ctypes.c_uint32(const.XCB_CW_BACK_PIXEL), ctypes.pointer(ctypes.c_uint32(self.screen.black_pixel)))
-
-
-        self._gc = xcb.xcb_generate_id(self.connection)
-        self._font = xcb.xcb_generate_id(self.connection)
-        xcb.xcb_open_font_checked(self.connection,
-                self._font, len("-artwiz-nu-*-*-*-*-*-*-*-*-*-*-*-*"), 
-                "-artwiz-nu-*-*-*-*-*-*-*-*-*-*-*-*")
-        xcb.xcb_create_gc(self.connection, self._gc, self.window, 
-                const.XCB_GC_FOREGROUND| const.XCB_GC_BACKGROUND|const.XCB_GC_FONT,
-                (ctypes.c_uint32 * 3)(self.screen.white_pixel, self.screen.black_pixel, self._font))
-
-        self._vistype = xcbaux.xcb_aux_get_visualtype(self.connection,
-                0,
-                self.screen.root_visual)
-
-        self.cairo_surface = cairo.cairo_xcb_surface_create(self.connection,
-                self.window,
-                self._vistype,
-                self.width,
-                self.height)
-
-        self.cairo_state = cairo.cairo_create(self.cairo_surface)
-        print "surf:", cairo.cairo_surface_destroy(self.cairo_surface)
-        
-        cairo.cairo_select_font_face (self.cairo_state, "Sans", const.CAIRO_FONT_SLANT_NORMAL, const.CAIRO_FONT_WEIGHT_BOLD);
-        cairo.cairo_set_font_size (self.cairo_state, ctypes.c_double(8));
-
-        fe = cairo_font_extents_t()
-        cairo.cairo_font_extents(self.cairo_state, ctypes.pointer(fe));
-        ##cairo_move_to (cr, 0.5 - te.width / 2 - te.x_bearing,
-        ##    0.5 - te.height / 2 - te.y_bearing);
-
-        self.cairo_text_height = fe.ascent + fe.descent
-        print fe.ascent
-        print fe.descent
-        print "Font Height:", self.cairo_text_height
-
-        #font_cookie = xcb.xcb_query_font(self.connection, self._font)
-        #xcb.xcb_query_font_reply.restype = ctypes.POINTER(xcb_query_font_reply_t)
-        #self._font_prop = xcb.xcb_query_font_reply(self.connection, font_cookie, None)
-        #print "prop:", self._font_prop.contents.font_descent
-
-
-
-        self._get_atoms()
-        self._set_props()
-        self._update_struts()
-
-        prop_cookie = xcb.xcb_get_property(self.connection,
-                0,
-                self.screen.root,
-                self._XROOTPMAP_ID,
-                const.PIXMAP,
-                0,
-                10)
-
-        rp = xcb.xcb_get_property_reply(self.connection,
-                prop_cookie,
-                None)
-
-        self.root_pixmap = ctypes.cast(xcb.xcb_get_property_value(rp), 
-                ctypes.POINTER(ctypes.c_uint32 * xcb.xcb_get_property_value_length(rp))).contents[0]
-        
-
-        self.events[const.XCB_EXPOSE].append(self._redraw)
-        self.events[const.XCB_PROPERTY_NOTIFY].append(self._property_notify)
-        self.atoms[self._XROOTPMAP_ID].append(self._update_background)
-
-        xcb.xcb_map_window(self.connection, self.window)
-        xcb.xcb_flush(self.connection)
-
-
-    def _property_notify(self, e):
-        for func in self.atoms[e.atom]:
-            func(e)
-
-    def _get_atoms(self):
-        # get all the atoms we need
-        cookies = []
-        atoms = [
+        self._init_window()
+        self._init_cairo()
+        a = self.get_atoms([
                 "_NET_WM_WINDOW_TYPE", 
                 "_NET_WM_WINDOW_TYPE_DOCK", 
                 "_NET_WM_DESKTOP",
@@ -605,16 +586,128 @@ class Pynel(object):
                 "_NET_WM_STRUT_PARTIAL",
                 "_WIN_STATE",
                 "_XROOTPMAP_ID",
-                ]
+                ])
+        for key,val in a.iteritems():
+            setattr(self, key, val)
+
+        self._set_props()
+        self._update_struts()
+        self._init_root_pixmap()
+
+        self.events[const.XCB_EXPOSE].append(self._redraw)
+        self.events[const.XCB_PROPERTY_NOTIFY].append(self._property_notify)
+        self.atoms[self._XROOTPMAP_ID].append(self._update_background)
+
+        self._update_background()
+
+        xcb.xcb_map_window(self.connection, self.window)
+        xcb.xcb_flush(self.connection)
+
+    def _init_window(self):
+        self._back_pixmap = xcb.xcb_generate_id(self.connection)
+        xcb.xcb_create_pixmap(self.connection,
+                self.screen.root_depth,
+                self._back_pixmap,
+                self.screen.root,
+                self.width,
+                self.height)
+
+        self.window = xcb.xcb_generate_id(self.connection)
+        xcb.xcb_create_window(self.connection,
+                self.screen.root_depth,
+                self.window,
+                self.screen.root,
+                self.x, self.y,
+                self.width, self.height,
+                0,
+                const.XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                self.screen.root_visual,
+                ctypes.c_uint32(const.XCB_CW_BACK_PIXMAP | const.XCB_CW_EVENT_MASK), 
+                (ctypes.c_uint32 * 2)(self._back_pixmap, 
+                    const.XCB_EVENT_MASK_EXPOSURE | const.XCB_EVENT_MASK_BUTTON_PRESS | 
+                    const.XCB_EVENT_MASK_ENTER_WINDOW | const.XCB_EVENT_MASK_BUTTON_RELEASE))
+
+        self._gc = xcb.xcb_generate_id(self.connection)
+        self._font = xcb.xcb_generate_id(self.connection)
+        xcb.xcb_open_font_checked(self.connection,
+                self._font, len("-artwiz-nu-*-*-*-*-*-*-*-*-*-*-*-*"), 
+                "-artwiz-nu-*-*-*-*-*-*-*-*-*-*-*-*")
+        xcb.xcb_create_gc(self.connection, self._gc, self.window, 
+                const.XCB_GC_FOREGROUND| const.XCB_GC_BACKGROUND|const.XCB_GC_FONT,
+                (ctypes.c_uint32 * 3)(self.screen.white_pixel, self.screen.black_pixel, self._font))
+
+        self._vistype = xcbaux.xcb_aux_get_visualtype(self.connection, 0,
+                self.screen.root_visual)
+
+
+    def _init_root_pixmap(self):
+        prop_cookie = xcb.xcb_get_property(self.connection, 0,
+                self.screen.root,
+                self._XROOTPMAP_ID,
+                const.PIXMAP,
+                0,
+                10)
+
+        xcb.xcb_change_window_attributes(self.connection,
+                self.screen.root,
+                const.XCB_CW_EVENT_MASK,
+                ctypes.pointer(ctypes.c_uint32(const.XCB_EVENT_MASK_PROPERTY_CHANGE)))
+
+
+        rp = xcb.xcb_get_property_reply(self.connection, prop_cookie, None)
+
+        self.root_pixmap = ctypes.cast(xcb.xcb_get_property_value(rp), 
+                ctypes.POINTER(ctypes.c_uint32 * xcb.xcb_get_property_value_length(rp))).contents[0]
+
+        xcb.free(rp)
+
+    def _init_cairo(self):
+        cs = cairo.cairo_xcb_surface_create(self.connection,
+                self.window,
+                self._vistype,
+                self.width,
+                self.height)
+        self.cairo_window = cairo.cairo_create(cs)
+        cairo.cairo_select_font_face (self.cairo_window, "Terminus", const.CAIRO_FONT_SLANT_NORMAL, const.CAIRO_FONT_WEIGHT_BOLD);
+        cairo.cairo_set_font_size (self.cairo_window, ctypes.c_double(8));
+        fe = cairo_font_extents_t()
+        cairo.cairo_font_extents(self.cairo_window, ctypes.pointer(fe));
+        self.cairo_text_height = fe.ascent
+        cairo.cairo_surface_destroy(cs)
+
+        cs = cairo.cairo_xcb_surface_create(self.connection,
+                self._back_pixmap,
+                self._vistype,
+                self.width,
+                self.height)
+
+        self.cairo_back_pixmap = cairo.cairo_create(cs)
+        cairo.cairo_surface_destroy(cs)
+
+    def _property_notify(self, e):
+        print "************ PROPERTY NOTIFY ************"
+        e = ctypes.cast(e, ctypes.POINTER(xcb_property_notify_event_t))
+        for func in self.atoms[e.contents.atom]:
+            print "Found functions"
+            func(e)
+
+    def get_atoms(self, atoms):
+        # get all the atoms we need
+        cookies = []
         for a in atoms:
             cookies.append(xcb.xcb_intern_atom(self.connection, 0, len(a), a));
+
+        ret = {}
 
         # get the replies (properly)
         xcb.xcb_intern_atom_reply.restype = ctypes.POINTER(xcb_intern_atom_reply_t)
         for c,a in zip(cookies, atoms):
             reply = xcb.xcb_intern_atom_reply(self.connection, c, None);
-            setattr(self, a, reply.contents.atom)
+            ret[a] = reply.contents.atom
             xcb.free(reply)
+
+        return ret
+
 
     def _set_props(self):
         xcbicccm.xcb_set_wm_name( self.connection,
@@ -747,8 +840,6 @@ class Pynel(object):
 
     def mainloop(self):
         self._init_widgets()
-        self._update_background()
-        xcb.xcb_flush(self.connection)
 
         poll = select.poll()
         poll.register(xcb.xcb_get_file_descriptor(self.connection), select.POLLIN)
@@ -766,6 +857,7 @@ class Pynel(object):
             if p:
                 evt = xcb.xcb_poll_for_event(self.connection)
                 while evt:
+                    print "Event:", evt.contents.response_type
                     for func in self.events[evt.contents.response_type]:
                         func(evt)
                     xcb.free(evt)
@@ -781,7 +873,6 @@ class Pynel(object):
             else:
                 timeout = -1
 
-            print "."
 
 
     def _alloc_color(self, color):
@@ -793,7 +884,7 @@ class Pynel(object):
             b = (color & 0xff) * 257
 
             c = self.screen.default_colormap.alloc_color(r, g, b)
-        
+
             if not c:
                 sys.stderr.write("Error allocating color: %s\n" % color)
                 return self.screen.white_pixel
@@ -803,31 +894,45 @@ class Pynel(object):
 
 
     def _update_background(self, *_):
+        print "updating background"
         xcb.xcb_copy_area(
                 self.connection,
                 self.root_pixmap,
-                self.window,
+                self._back_pixmap,
                 self._gc,
-                0,0,
+                self.x, self.y,
                 0,0,
                 self.width,
                 self.height)
-
-        #if self.root_map != root_map:
-        #    self.root_map = root_map
-        #    r = self.bg >> 16
-        #    g = (self.bg >> 8) & 0xff
-        #    b = self.bg & 0xff
-        #    cshade(self.window.id, root_map, 
-        #            self.x, self.y, self.width, self.height,
-        #            r, g, b, self.shade)
-
-        #self.update()
+        cairo.cairo_set_source_rgba(self.cairo_back_pixmap, 
+                ctypes.c_double(0.0),
+                ctypes.c_double(0.0),
+                ctypes.c_double(0.0),
+                ctypes.c_double(0.3))
+        cairo.cairo_rectangle(self.cairo_back_pixmap, 
+                ctypes.c_double(0.0),
+                ctypes.c_double(0.0),
+                ctypes.c_double(self.width),
+                ctypes.c_double(self.height))
+        cairo.cairo_fill(self.cairo_back_pixmap)
+        cairo.cairo_set_line_width(self.cairo_back_pixmap, ctypes.c_double(1))
+        cairo.cairo_set_source_rgba(self.cairo_back_pixmap, 
+                ctypes.c_double(1.0),
+                ctypes.c_double(1.0),
+                ctypes.c_double(1.0),
+                ctypes.c_double(1.0))
+        cairo.cairo_rectangle(self.cairo_back_pixmap, 
+                ctypes.c_double(0.0),
+                ctypes.c_double(0.0),
+                ctypes.c_double(self.width),
+                ctypes.c_double(self.height))
+        cairo.cairo_stroke(self.cairo_back_pixmap)
 
     def _redraw(self, *_):
-        print "drawing"
+        #if self._background_needs_update:
+        #    self._update_background()
+        #    self._background_needs_update -= 1
         self.clear(0, 0, self.width, self.height)
-        self._update_background()
         space = self.width-self.border*2
         leftx = self.border
         for w in self.left:
@@ -848,22 +953,9 @@ class Pynel(object):
             space -= w.width
 
     def clear(self, x, y, w, h):
-        print "clearing"
         xcb.xcb_clear_area(self.connection, 0, self.window, x, y, w, h)
-        #self.cairo_surface = cairo.cairo_xcb_surface_create(self.connection,
-        #        self.window,
-        #        self._vistype,
-        #        self.width,
-        #        self.height)
-
-        #self.cairo_state = cairo.cairo_create(self.cairo_surface)
-        #cairo.cairo_surface_destroy(self.cairo_surface)
-
-        #cairo.cairo_select_font_face (self.cairo_state, "Terminus", const.CAIRO_FONT_SLANT_NORMAL, const.CAIRO_FONT_WEIGHT_BOLD);
-        #cairo.cairo_set_font_size (self.cairo_state, ctypes.c_double(8));
 
     def draw_text(self, x, text, color=None):
-        print "draw_text"
         if color is None:
             color = self.fg
 
@@ -871,20 +963,14 @@ class Pynel(object):
         g = ctypes.c_double(float(color >> 8 & 0xff)/0xff)
         b = ctypes.c_double(float(color & 0xff)/0xff)
 
-        cairo.cairo_set_source_rgb (self.cairo_state, r, g, b);
-        print self.height
-        print self.cairo_text_height
-        print (self.height + self.cairo_text_height)/2
-        cairo.cairo_move_to(self.cairo_state, ctypes.c_double(x), ctypes.c_double(11))
-        cairo.cairo_show_text (self.cairo_state, text);
-
-        #cfont(self.window.id, color, x, self.height, 0, text)
+        cairo.cairo_set_source_rgb (self.cairo_window, r, g, b);
+        y =  (self.height - 2 + self.cairo_text_height)/2
+        cairo.cairo_move_to(self.cairo_window, ctypes.c_double(x), ctypes.c_double(y))
+        cairo.cairo_show_text (self.cairo_window, text);
 
     def text_width(self, text):
-        print "text_width"
         te = cairo_text_extents_t()
-        cairo.cairo_text_extents(self.cairo_state, text, ctypes.byref(te));
-        print 'fheigh:', te.height
+        cairo.cairo_text_extents(self.cairo_window, text, ctypes.byref(te));
         return te.width
 
     def update(self):
@@ -893,16 +979,11 @@ class Pynel(object):
 if __name__ == "__main__":
     pynel = Pynel()
 
-    """
     pynel.left.append(Desktop())
-    """
     pynel.right.append(Clock())
-    """
     pynel.right.append(Text(" | ", 0x00dd00))
     pynel.right.append(CPU(2))
     pynel.right.append(Text(" / ", 0x000000))
     pynel.right.append(CPU(1))
 
-
-    """
     pynel.mainloop()
