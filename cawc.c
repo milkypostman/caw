@@ -12,6 +12,7 @@ static PyObject * _connect(PyObject *self, PyObject *args)
     connection = xcb_connect(0, 0);
     return Py_BuildValue("l", connection);
 }
+
 static PyMethodDef CAWCMethods[] = {
 /*-------------------------------*/
     {"connect",     _connect,     METH_VARARGS, "Connect"},
