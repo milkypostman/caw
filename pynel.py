@@ -32,6 +32,110 @@ class Widget(object):
         """ reimplement in subclass """
         pass
 
+class Desktop(Widget):
+    def __init__(self, current_fg=None, fg=None, current_bg=None, bg=None):
+        self.desktops = []
+        self.current = 0
+        self.fg = fg
+        self.current_fg = current_fg
+        self.current_bg = current_bg
+        self.bg = bg
+        self.current_bg = 0x00ff00
+
+    def setup(self):
+        self._NET_CURRENT_DESKTOP = self.parent.display.intern_atom("_NET_CURRENT_DESKTOP")
+        self._NET_WM_DESKTOP = self.parent.display.intern_atom("_NET_WM_DESKTOP")
+        self._NET_DESKTOP_NAMES = self.parent.display.intern_atom("_NET_DESKTOP_NAMES")
+        self._NET_NUMBER_OF_DESKTOPS = self.parent.display.intern_atom("_NET_NUMBER_OF_DESKTOPS")
+        self.parent.atoms[self._NET_WM_DESKTOP].append(self._update)
+        self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update)
+        self._get_desktops()
+        if self.fg is None:
+            self.fg = self.parent.fg
+        if self.current_fg is None:
+            self.current_fg = self.parent.fg
+
+        if self.current_bg is not None or self.bg is not None:
+            self.gc = self.parent.root.create_gc()
+
+        self._update()
+
+    def _get_desktops(self):
+        total = self.parent.root.get_full_property(self._NET_NUMBER_OF_DESKTOPS, 0).value[0]
+        names = self.parent.root.get_full_property(self._NET_DESKTOP_NAMES, 0)
+        if hasattr(names, "value"):
+            names = names.value.strip("\x00").split("\x00")
+        else:
+            names = []
+            for x in range(desktop.total):
+                names.append(str(x))
+
+        self.desktops = names
+
+        self.min_width = self.parent.text_width(self._output())
+
+    def _output(self):
+        out = ""
+        for i, name in enumerate(self.desktops):
+            if i == self.current:
+                out += "<"
+            else:
+                out += " "
+
+            out += name
+
+            if i == self.current:
+                out += ">"
+            else:
+                out += " "
+
+        return out
+
+
+    def _update(self, event=None):
+        if event is None:
+            self.current = self.parent.root.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
+
+        if hasattr(event, "window"):
+            try:
+                self.current = event.window.get_full_property(self._NET_CURRENT_DESKTOP, Xatom.CARDINAL).value[0]
+            except:
+                try:
+                    self.current = event.window.get_full_property(self._BLACKBOX, 0).value[2]
+                except:
+                    self.current = 0
+
+        self.parent.update()
+
+
+    def draw(self):
+        color = self.fg
+        curx = self.x
+        for i, name in enumerate(self.desktops):
+            if i == self.current:
+                out = "<" + name + ">"
+                color = self.current_fg
+                width = self.parent.text_width(out)
+                print width
+                #if self.current_bg is not None:
+                    #self.gc.change(foreground=self.current_bg)
+                    #print curx, curx+width-1
+                    #cfillrectangle(self.parent.window.id, self.current_bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+            else:
+                out = " " + name + " "
+                color = self.fg
+                width = self.parent.text_width(out)
+                #if self.bg is not None:
+                    #self.gc.change(foreground=self.bg)
+                    #print curx, curx+width
+                    #self.parent.window.fill_rectangle(self.gc, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+                    #cfillrectangle(self.parent.window.id, self.bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
+
+            self.parent.draw_text(curx, out, color)
+            curx += self.parent.text_width(out)
+
+
+
 class Systray(Widget):
     def setup(self, icon_size=None):
         self.icon_size = icon_size
@@ -72,7 +176,6 @@ class Systray(Widget):
             data = event.data[1][1] # opcode
             task = event.data[1][2] # taskid
             if event.client_type == self._NET_SYSTEM_TRAY_OPCODE and data == 0:
-                print "new task!"
                 taskwin = self.parent.display.create_resource_object("window", task)
                 taskwin.reparent(self.parent.window.id, 0, 0)
                 taskwin.change_attributes(event_mask=(X.ExposureMask|X.StructureNotifyMask))
@@ -88,6 +191,7 @@ class Systray(Widget):
 
     def draw(self):
         curx = self.x
+        print "x:", self.x
         for task in self.tasks:
             print "drawing task:",task
             t = self.tasks[task]
@@ -96,6 +200,7 @@ class Systray(Widget):
             t['window'].configure(onerror=self.error_handler, x=t['x'], y=t['y'], width=t['width'], height=t['height'])
             t['window'].map(onerror=self.error_handler)
             curx += t['width']
+
 
 
 class Text(Widget):
@@ -212,12 +317,15 @@ class Pynel(object):
 
         self.width = self.screen.width_in_pixels
         self.height = 10
+        self.border = 2
+
+        self.height += self.border *2
         self.x = 0
         self.y = self.screen.height_in_pixels - self.height
 
         self.bg = 0xffffff
         self.fg = 0x000000
-        self.shade = 100
+        self.shade = 50
 
         self.left = []
         self.right = []
@@ -225,9 +333,9 @@ class Pynel(object):
         self.root_map = None
 
         self.window = self.screen.root.create_window(self.x, self.y,
-            self.width, self.height, 
+            self.width, self.height,
             0, self.screen.root_depth, window_class=X.InputOutput,
-            visual=X.CopyFromParent, colormap=X.CopyFromParent, 
+            visual=X.CopyFromParent, colormap=X.CopyFromParent,
             event_mask=(X.ExposureMask|X.ButtonPressMask|X.ButtonReleaseMask|X.EnterWindowMask))
 
         ppinit(self.window.id, FONT)
@@ -247,7 +355,7 @@ class Pynel(object):
             func(e)
 
     def _set_props(self):
-        """ Set necessary X atoms and panel window properties """   
+        """ Set necessary X atoms and panel window properties """
         self._WIN_STATE = self.display.intern_atom("_WIN_STATE")
         self._XROOTPMAP_ID = self.display.intern_atom("_XROOTPMAP_ID")
         self._NET_WM_NAME = self.display.intern_atom("_NET_WM_NAME")
@@ -272,8 +380,8 @@ class Pynel(object):
 
         self.window.set_wm_normal_hints(flags=(
             Xutil.PPosition|Xutil.PMaxSize|Xutil.PMinSize),
-            min_width=10, min_height=10,
-            max_width=self.width, max_height=10)
+            min_width=10, min_height=self.height,
+            max_width=self.width, max_height=self.height)
 
         self.window.change_property(self._NET_WM_DESKTOP, Xatom.CARDINAL, 32,
                 [0xffffffffL])
@@ -383,11 +491,12 @@ class Pynel(object):
         leftx = 0
         for w in self.left:
             wh = w.min_width
+            print "left:", wh
             w.x = leftx
             w.width = wh
             w.draw()
-            leftx += w.width
-            space -= w.width
+            leftx += wh
+            space -= wh
 
         rightx = self.width
         for w in self.right:
@@ -395,8 +504,8 @@ class Pynel(object):
             w.x = rightx - wh
             w.width = wh
             w.draw()
-            rightx -= w.width
-            space -= w.width
+            rightx -= wh
+            space -= wh
 
     def clear(self, x1, y1, x2, y2):
         ppclear(self.window.id, x1, y1, x2, y2)
@@ -417,6 +526,7 @@ class Pynel(object):
 if __name__ == "__main__":
     pynel = Pynel()
 
+    pynel.left.append(Desktop(0xff0000))
     pynel.left.append(Systray())
     pynel.right.append(Clock())
     pynel.right.append(Text(" | ", 0x00dd00))
