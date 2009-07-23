@@ -38,6 +38,10 @@ class Widget(object):
         """ reimplement in subclass """
         pass
 
+    def keypress(self, button):
+        pass
+
+
 class Volume:
     def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa'):
         self.device = device
@@ -49,20 +53,16 @@ class Volume:
 
         self.driver = driver
 
-    def init(self):
+    def setup(self):
+
         getattr(self, '_init_' + self.driver)()
         self.min = 0
         self.max = 100
 
-        self.widget = wmii.Widget(self.name, self.bar)
-        wmii.register_widget(self.widget)
-        self.widget.clicked = self.widget_clicked
-
-        self.fglow = wmii.colors.get('volume_fglow', wmii.colors['normfg'])
-        self.fgmed = wmii.colors.get('volume_fgmed', wmii.colors['normfg'])
-        self.fghigh = wmii.colors.get('volume_fghigh', wmii.colors['normfg'])
-
-        self.update()
+        self.fglow = 0xcccccc
+        self.fgmed = 0x00cc00
+        self.fghigh = 0xcc0000
+        self._update()
 
     def _init_oss(self):
         self.device_mask = getattr(ossaudiodev, "SOUND_MIXER_%s" % self.device.upper(), None)
@@ -76,45 +76,48 @@ class Volume:
         self.min, self.max = self.mixer.getrange()
 
     def _update_alsa(self):
-        vol = self.mixer.getvolume()
+        vol = alsaaudio.Mixer(self.device).getvolume()
         self.current = reduce(operator.add, vol) / len(vol)
-        return round((float(self.current) / self.max) * 100)
+        self.percent = round((float(self.current) / self.max) * 100)
 
     def _update_oss(self):
         vol = self.mixer.get(self.device_mask)
         self.current = reduce(operator.add, vol) / len(vol)
-        return round((float(self.current) / self.max) * 100)
-
-    def update(self):
-        self._update()
-        wmii.schedule(5, self.update)
+        self.percent = round((float(self.current) / self.max) * 100)
 
     def _update(self):
-        percent = getattr(self, '_update_' + self.driver)()
+        getattr(self, "_update_" + self.driver)()
+        self.min_width = self.parent.text_width("%d%%" % self.percent)
+        self.parent.schedule(2, self._update)
+
+    def draw(self):
         fg = self.fglow
-        if percent > self.high:
+        if self.percent > self.high:
             fg = self.fghigh
-        elif percent > self.med:
+        elif self.percent > self.med:
             fg = self.fgmed
 
-        self.widget.fg = fg
-        self.widget.show("%d%%" % percent)
+        offset = self.parent.draw_text(self.x, "%d" % self.percent, fg)
+        self.parent.draw_text(self.x+offset, "%")
 
     def _set_alsa(self, value):
-        self.mixer.setvolume(value)
+        alsaaudio.Mixer(self.device).setvolume(value)
 
     def _set_oss(self, value):
         self.mixer.set(self.device_mask, (value,value))
 
-    def widget_clicked(self, button):
+    def keypress(self, button):
         if button == 5:
             newval =  max(self.current-self.step, self.min)
             getattr(self, "_set_" + self.driver)(newval)
-            self._update()
+            getattr(self, "_update_" + self.driver)()
+            self.parent.redraw()
         elif button == 4:
             newval =  min(self.current+self.step, self.max)
             getattr(self, "_set_" + self.driver)(newval)
-            self._update()
+            getattr(self, "_update_" + self.driver)()
+            self.parent.redraw()
+
 class Desktop(Widget):
     def __init__(self, current_fg=None, fg=None, current_bg=None, bg=None):
         self.desktops = []
@@ -159,6 +162,7 @@ class Desktop(Widget):
 
     def _output(self):
         out = ""
+        return self.desktops[self.current]
         for i, name in enumerate(self.desktops):
             if i == self.current:
                 out += "<"
@@ -194,12 +198,13 @@ class Desktop(Widget):
     def draw(self):
         color = self.fg
         curx = self.x
+        self.parent.draw_text(curx, self.desktops[self.current])
+        return
         for i, name in enumerate(self.desktops):
             if i == self.current:
                 out = "<" + name + ">"
                 color = self.current_fg
                 width = self.parent.text_width(out)
-                print width
                 #if self.current_bg is not None:
                     #self.gc.change(foreground=self.current_bg)
                     #print curx, curx+width-1
@@ -216,8 +221,6 @@ class Desktop(Widget):
 
             self.parent.draw_text(curx, out, color)
             curx += self.parent.text_width(out)
-
-
 
 class Systray(Widget):
     def setup(self, icon_size=None):
@@ -274,17 +277,13 @@ class Systray(Widget):
 
     def draw(self):
         curx = self.x
-        print "x:", self.x
         for task in self.tasks:
-            print "drawing task:",task
             t = self.tasks[task]
             t['x'] = curx
             t['y'] = (self.parent.height - t['height'])/2
             t['window'].configure(onerror=self.error_handler, x=t['x'], y=t['y'], width=t['width'], height=t['height'])
             t['window'].map(onerror=self.error_handler)
             curx += t['width']
-
-
 
 class Text(Widget):
     def __init__(self, text="undefined", color=None):
@@ -407,7 +406,7 @@ class Pynel(object):
         self.y = self.screen.height_in_pixels - self.height
 
         self.bg = 0xffffff
-        self.fg = 0x000000
+        self.fg = 0xFE9E01
         self.shade = 50
 
         self.left = []
@@ -429,13 +428,26 @@ class Pynel(object):
         self.window.map()
         self.display.flush()
 
-        self.events[X.Expose].append(self._redraw)
+        self.events[X.Expose].append(self.redraw)
         self.events[X.PropertyNotify].append(self._property_notify)
+        self.events[X.ButtonPress].append(self._key_pressed)
         self.atoms[self._XROOTPMAP_ID].append(self._update_background)
 
     def _property_notify(self, e):
         for func in self.atoms[e.atom]:
             func(e)
+
+    def _key_pressed(self, e):
+        x = e.event_x
+        if x < self.left[-1].x + self.left[-1].width:
+            for w in self.left:
+                if x >= w.x and x < w.x + w.width:
+                    w.keypress(e.detail)
+        elif x > self.right[-1].x:
+            for w in self.right:
+                if x >= w.x and x < w.x + w.width:
+                    w.keypress(e.detail)
+
 
     def _set_props(self):
         """ Set necessary X atoms and panel window properties """
@@ -473,21 +485,25 @@ class Pynel(object):
 
         self.window.change_property(self._WIN_STATE, Xatom.CARDINAL, 32, [1])
 
-        #self.window.change_property(self._NET_WM_WINDOW_TYPE,
-        #    Xatom.ATOM, 32, [self._NET_WM_WINDOW_TYPE_DOCK])
+        self.window.change_property(self._NET_WM_WINDOW_TYPE,
+            Xatom.ATOM, 32, [self._NET_WM_WINDOW_TYPE_DOCK])
 
         self.window.change_property(self._NET_WM_STATE, Xatom.ATOM, 32,
-                [1, self._NET_WM_STATE_STICKY])
+                [self._NET_WM_STATE_STICKY])
+        #[1, self._NET_WM_STATE_STICKY])
 
         #self.window.change_property(self._MOTIF_WM_HINTS,
         #        self._MOTIF_WM_HINTS, 32, [0x2, 0x0, 0x0, 0x0, 0x0])
 
         self.window.change_property(self._NET_WM_STATE, Xatom.ATOM, 32,
-                [1, self._NET_WM_STATE_SKIP_PAGER])
+                [self._NET_WM_STATE_SKIP_PAGER])
+        #[1, self._NET_WM_STATE_SKIP_PAGER])
         self.window.change_property(self._NET_WM_STATE, Xatom.ATOM, 32,
-                [1, self._NET_WM_STATE_SKIP_TASKBAR])
+                [self._NET_WM_STATE_SKIP_TASKBAR])
+        #[1, self._NET_WM_STATE_SKIP_TASKBAR])
         self.window.change_property(self._NET_WM_STATE, Xatom.ATOM, 32,
-                [1, self._NET_WM_STATE_ABOVE])
+                [self._NET_WM_STATE_ABOVE])
+        #[1, self._NET_WM_STATE_ABOVE])
 
     def _update_struts(self):
         self.window.change_property(self._NET_WM_STRUT, Xatom.CARDINAL, 32,
@@ -526,7 +542,7 @@ class Pynel(object):
         timeout = 0
         while True:
             if self._update:
-                self._redraw()
+                self.redraw()
                 self._update = False
 
             p = poll.poll(timeout*1000)
@@ -567,14 +583,13 @@ class Pynel(object):
                     r, g, b, self.shade)
         self.update()
 
-    def _redraw(self, *_):
-        print "drawing"
+    def redraw(self, *_):
+        #print "drawing"
         self.clear(0, 0, self.width, self.height)
         space = self.width
         leftx = 0
         for w in self.left:
             wh = w.min_width
-            print "left:", wh
             w.x = leftx
             w.width = wh
             w.draw()
@@ -597,6 +612,7 @@ class Pynel(object):
         if color is None:
             color = self.fg
         ppfont(self.window.id, color, x, self.height, 0, text)
+        return ppfontsize(text)
 
     def text_width(self, text):
         return ppfontsize(text)
@@ -609,12 +625,20 @@ class Pynel(object):
 if __name__ == "__main__":
     pynel = Pynel()
 
+    pynel.left.append(Text(" ", 0x00dd00))
     pynel.left.append(Desktop(0xff0000))
     pynel.left.append(Systray())
+
+
+    pynel.right.append(Text(" ", 0x00dd00))
     pynel.right.append(Clock())
-    pynel.right.append(Text(" | ", 0x00dd00))
+    pynel.right.append(Text(" | ", 0x999999))
+    pynel.right.append(Volume(device='PCM'))
+    pynel.right.append(Text(" ", 0x00dd00))
+    pynel.right.append(Volume())
+    pynel.right.append(Text(" | ", 0x999999))
     pynel.right.append(CPU(2))
-    pynel.right.append(Text(" / ", 0x000000))
+    pynel.right.append(Text(" / ", 0x777777))
     pynel.right.append(CPU(1))
 
     pynel.mainloop()
