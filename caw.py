@@ -6,9 +6,11 @@ import xcb.xproto as xproto
 
 class Caw:
     def __init__(self):
-        self.c_connection = cawc.connect()
+        self.connection_c = cawc.xcb_connect()
+        self.screen_c = cawc.xcb_screen(self.connection_c)
+        self.visualtype_c = cawc.xcb_visualtype(self.screen_c)
 
-        self.connection = xcb.wrap(self.c_connection)
+        self.connection = xcb.wrap(self.connection_c)
         print self.connection.has_error()
         print self.connection.pref_screen
         self.screen = self.connection.get_setup().roots[0]
@@ -23,6 +25,7 @@ class Caw:
         self.y = self.screen.height_in_pixels - self.height
 
         self._init_window()
+        self._init_cairo()
 
     def get_atoms(self, atoms):
         conn = self.connection
@@ -68,6 +71,15 @@ class Caw:
         conn.core.CreateGC(self._gc, self.window,
                 xproto.GC.Foreground | xproto.GC.Background,
                 [scr.white_pixel, scr.black_pixel])
+
+    def _init_cairo(self):
+        self.cairo_c = cawc.cairo_create(
+                self.connection_c,
+                self._back_pixmap,
+                self.visualtype_c,
+                self.width,
+                self.height)
+
 
 if __name__ == '__main__':
     caw = Caw()
