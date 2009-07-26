@@ -640,7 +640,7 @@ class Pynel(object):
                 self.screen.root_visual)
 
 
-    def _init_root_pixmap(self):
+    def _root_pixmap(self):
         prop_cookie = xcb.xcb_get_property(self.connection, 0,
                 self.screen.root,
                 self._XROOTPMAP_ID,
