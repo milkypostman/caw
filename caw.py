@@ -70,6 +70,7 @@ class Desktop(Widget):
 
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update)
         self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update)
+        self.parent.atoms[self._NET_DESKTOP_NAMES].append(self._get_desktops)
         self._get_desktops()
         #if self.fg is None:
         #    self.fg = self.parent.fg
@@ -78,8 +79,6 @@ class Desktop(Widget):
 
         #if self.current_bg is not None or self.bg is not None:
         #    self.gc = self.parent.root.create_gc()
-
-        self._update()
 
     def _get_desktops(self):
         print "get desk"
@@ -106,9 +105,10 @@ class Desktop(Widget):
         self.desktops = struct.unpack_from("%ds" % namesr.value_len, 
                 namesr.value.buf())[0].strip("\x00").split("\x00")
 
-        self.min_width = len(self._output())
+        self._update()
 
     def _output(self):
+        return ' ' + self.desktops[self.current] + ' '
         out = ""
         for i, name in enumerate(self.desktops):
             if i == self.current:
@@ -133,33 +133,36 @@ class Desktop(Widget):
                 xcb.XA_CARDINAL, 0, 12)
         currp = currc.reply()
         self.current = struct.unpack_from("I", currp.value.buf())[0]
+        self.min_width = self.parent.text_width(self._output())
         self.parent.update()
 
 
     def draw(self):
         color = self.fg
         curx = self.x
-        for i, name in enumerate(self.desktops):
-            if i == self.current:
-                out = "<" + name + ">"
-                color = self.current_fg
-                width = self.parent.text_width(out)
+        #for i, name in enumerate(self.desktops):
+        #    if i == self.current:
+        #        out = ' ' + name + ' '
+        #    else:
+        #        continue
+            #    out = "<" + name + ">"
+            #    color = self.current_fg
+            #    width = self.parent.text_width(out)
         #        if self.current_bg is not None:
         #            #self.gc.change(foreground=self.current_bg)
         #            #print curx, curx+width-1
         #            #cfillrectangle(self.parent.window.id, self.current_bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
-            else:
-                out = " " + name + " "
-                color = self.fg
-                width = self.parent.text_width(out)
+            #else:
+            #    out = " " + name + " "
+            #    color = self.fg
+            #    width = self.parent.text_width(out)
         #        if self.bg is not None:
         #            #self.gc.change(foreground=self.bg)
         #            #print curx, curx+width
         #            #self.parent.window.fill_rectangle(self.gc, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
         #            #cfillrectangle(self.parent.window.id, self.bg, curx, self.parent.border, width-1, self.parent.height - self.parent.border*2)
 
-            self.parent.draw_text(curx, out, color)
-            curx += self.parent.text_width(out)
+        self.parent.draw_text(curx, self._output(), color)
 
 
 class Systray(Widget):
@@ -173,6 +176,8 @@ class Systray(Widget):
             else:
                 self.icon_size = self.parent.height
 
+        self.tasks = {}
+
         conn = self.parent.connection
         scr = self.parent.screen
         self.parent.events[xproto.ClientMessageEvent].append(self._clientmessage)
@@ -182,7 +187,8 @@ class Systray(Widget):
         a = self.parent.get_atoms([
             "_NET_SYSTEM_TRAY_OPCODE",
             "_NET_SYSTEM_TRAY_S%d" % 0,
-            "MANAGER"
+            "MANAGER",
+            "WM_STATE"
             ])
 
         for key,val in a.iteritems():
@@ -191,11 +197,14 @@ class Systray(Widget):
 
         self.window = conn.generate_id()
         conn.core.CreateWindow(scr.root_depth,
-                self.window, scr.root,
+                self.window, self.parent.window,
                 -1, -1, 1, 1, 0,
                 xproto.WindowClass.CopyFromParent,
                 scr.root_visual,
-                0, [])
+                0,
+                [])
+
+        print "Systray window:", self.window
 
         # have to manually build the event!
         response_type = 33 # XCB_CLIENT_MESSAGE
@@ -205,50 +214,83 @@ class Systray(Widget):
         type = self.MANAGER
         data = [xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0]
         event = struct.pack('BBHII5I', response_type, format, sequence, window, type, xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0)
-        print "CURRENT_TIME:",xcb.CurrentTime
+
         e = conn.core.SetSelectionOwnerChecked(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
-        print "//////",e.check()
         e = conn.core.SendEventChecked(0, scr.root, 0xffffff, event)
-        print "//////",e.check()
 
 
     def _destroynotify(self, event):
         print "********* DESTROY NOTIFY **************"
-        #if event.window.id in self.tasks:
-        #    del self.tasks[event.window.id]
-        #    self.min_width=self.icon_size*len(self.tasks)
-        #    self.parent.update()
+        if event.window in self.tasks:
+            conn = self.parent.connection
+            #conn.core.ReparentWindow(event.window, self.window, 0, 0)
+            del self.tasks[event.window]
+            self.min_width=self.icon_size*len(self.tasks)
+            #self.parent.update()
 
     def _clientmessage(self, event):
-        print "********* CLIENT MESSAGE **************"
-        #if event.window == self._window:
-        #    data = event.data[1][1] # opcode
-        #    task = event.data[1][2] # taskid
-        #    if event.client_type == self._NET_SYSTEM_TRAY_OPCODE and data == 0:
-        #        taskwin = self.parent.display.create_resource_object("window", task)
-        #        taskwin.reparent(self.parent.window.id, 0, 0)
-        #        taskwin.change_attributes(event_mask=(X.ExposureMask|X.StructureNotifyMask))
-        #        self.tasks[task] = dict(window=taskwin, x=0, y=0, width=self.icon_size, height=self.icon_size)
-        #        self.min_width=self.icon_size*len(self.tasks)
-        #        self.parent.update()
+        if event.window == self.window:
+            print "!!!!!!!!!!!!! CLIENT MESSAGE !!!!!!!!!!!!!!!"
+            opcode = xproto.ClientMessageData(event, 0, 20).data32[2]
+            data = xproto.ClientMessageData(event, 12, 20)
+            task = data.data32[2]
+            if opcode == self._NET_SYSTEM_TRAY_OPCODE:
+                conn = self.parent.connection
+
+                #conn.core.ChangeProperty(xproto.PropMode.Replace, task, self.WM_STATE, self.WM_STATE, 32, 2, struct.pack('II', 0, 0))
+
+                conn.core.ReparentWindow(task, self.parent.window, 0, 0)
+                conn.core.ChangeWindowAttributes(task, xproto.CW.EventMask, [xproto.EventMask.Exposure|xproto.EventMask.StructureNotify])
+                conn.flush()
+                self.tasks[task] = dict(x=0, y=0, width=self.icon_size, height=self.icon_size)
+                self.min_width = self.icon_size * len(self.tasks)
+                self.parent.update()
+
+    def _configure_window(self, window, x, y, w, h):
+        print "_configure_window", window
+
+        cawc.xcb_configure_window(self.parent.connection_c,
+                window, x, y, w, h)
+        return
+
+        self.parent.connection.core.ConfigureWindow(
+                window, 
+                (xproto.ConfigWindow.X |
+                xproto.ConfigWindow.Y |
+                xproto.ConfigWindow.Width |
+                xproto.ConfigWindow.Height),
+                [x,y,w,h])
 
     def _configurenotify(self, event):
         print "********* CONFIGURE NOTIFY **************"
-        #if event.window.id in self.tasks:
-        #    task = self.tasks[event.window.id]
-        #    task['window'].configure(onerror=self.error_handler, width=task['width'], height=task['height'])
+        if event.window in self.tasks:
+            print 'HERES OUR WINDOW!'
+            task = self.tasks[event.window]
+            conn = self.parent.connection
+            self._configure_window(event.window,
+                    task['x'], task['y'],
+                    task['width'], task['height'])
+            #conn.core.ChangeWindowAttributes(event.window, xproto.CW.EventMask, [xproto.EventMask.StructureNotify])
 
-    #def draw(self):
-    #    curx = self.x
-    #    for task in self.tasks:
-    #        print "drawing task:",task
-    #        t = self.tasks[task]
-    #        t['x'] = curx
-    #        t['y'] = (self.parent.height - t['height'])/2
-    #        t['window'].configure(onerror=self.error_handler, x=t['x'], y=t['y'], width=t['width'], height=t['height'])
-    #        t['window'].map(onerror=self.error_handler)
-    #        curx += t['width']
-    #        """
+    def draw(self):
+        curx = self.x
+
+        conn = self.parent.connection
+        width = max(self.min_width, 1)
+        #self._configure_window(self.window, curx, 0, width, self.parent.height)
+        #conn.core.ClearArea(0, self.window, 0, 0, width, self.parent.height)
+        #conn.core.MapWindow(self.window)
+
+        for taskwin in self.tasks:
+            task = self.tasks[taskwin]
+            task['x'] = curx
+            task['y'] = (self.parent.height - task['height'])/2
+            self._configure_window(taskwin,
+                    task['x'], task['y'],
+                    task['width'], task['height'])
+            conn.core.MapWindow(taskwin)
+            curx += task['width']
+
 
 class Text(Widget):
     def __init__(self, text="undefined", color=None):
@@ -403,9 +445,9 @@ class Caw:
     def _init_window(self):
         conn = self.connection
         scr = self.screen
-        self._back_pixmap = conn.generate_id()
+        self.back_pixmap = conn.generate_id()
         conn.core.CreatePixmap(scr.root_depth,
-                self._back_pixmap, scr.root,
+                self.back_pixmap, scr.root,
                 self.width, self.height)
 
         self.window = conn.generate_id()
@@ -417,7 +459,7 @@ class Caw:
                 xproto.WindowClass.InputOutput,
                 scr.root_visual,
                 xproto.CW.BackPixmap | xproto.CW.EventMask,
-                [self._back_pixmap,
+                [self.back_pixmap,
                     xproto.EventMask.Exposure |
                     xproto.EventMask.EnterWindow |
                     xproto.EventMask.ButtonPress |
@@ -432,7 +474,7 @@ class Caw:
     def _init_cairo(self):
         self._back_cairo_c = cawc.cairo_create(
                 self.connection_c,
-                self._back_pixmap,
+                self.back_pixmap,
                 self.visualtype_c,
                 self.width,
                 self.height)
@@ -499,7 +541,7 @@ class Caw:
         conn = self.connection
         rp = self._root_pixmap()
         conn.core.CopyArea(rp,
-            self._back_pixmap,
+            self.back_pixmap,
             self._gc,
             0,0,
             0,0,
@@ -554,10 +596,18 @@ class Caw:
                 try:
                     event = conn.poll_for_event()
                     print "Event:", event.type
+                    print "Window:", getattr(event, 'window', None)
+                    if event.type == 161:
+                        event = xproto.ClientMessageEvent(event)
                     for func in self.events[type(event)]:
                         func(event)
+                except xcb.xproto.BadWindow as e:
+                    # FIXME: not sure why i have to ignore this
+                    # it is a fix for the system tray crashing
+                    print "Bad Window:", (e.args[0].bad_value)
                 except IOError:
                     break
+
 
                     #for func in self.events[evt.contents.response_type]:
                         #func(evt)

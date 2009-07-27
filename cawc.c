@@ -115,6 +115,26 @@ _xcb_screen(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+_xcb_configure_window(PyObject *self, PyObject *args)
+{
+    xcb_connection_t *connection;
+    xcb_window_t win;
+    uint32_t config[7];
+
+    if (!PyArg_ParseTuple(args, "llllll", &connection, &win, &config[0], &config[1], &config[2], &config[3]))
+        return NULL;
+
+    xcb_configure_window(connection, win,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            config);
+
+
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 _cairo_set_source_rgb(PyObject *self, PyObject *args)
 {
     cairo_t * cairo;
@@ -394,6 +414,7 @@ static PyMethodDef CAWCMethods[] = {
 /*-------------------------------*/
     {"xcb_connect",     _xcb_connect,     METH_VARARGS, "Connect"},
     {"xcb_screen",     _xcb_screen,     METH_VARARGS, "Connect"},
+    {"xcb_configure_window",     _xcb_configure_window,     METH_VARARGS, "Connect"},
     {"xcb_visualtype",     _xcb_visualtype,     METH_VARARGS, "Connect"},
     {"cairo_create", _cairo_create, METH_VARARGS},
     {"cairo_set_source_rgb", _cairo_set_source_rgb, METH_VARARGS},
