@@ -57,6 +57,154 @@ class Clock(Widget):
     def draw(self):
         self.parent.draw_text(self.text, color=self.color)
 
+class Tasklist(Widget):
+    def __init__(self, alldesktops=False):
+        super(Tasklist, self).__init__()
+        self.alldesktops = alldesktops
+        self.clients = {}
+        self.current_desktop = None
+        self.current_client = None
+        self.trim_length = 0
+        self.spacing = 5
+
+    def setup(self):
+        a = self.parent.get_atoms([
+            "_NET_WM_DESKTOP",
+            "_NET_CURRENT_DESKTOP",
+            "_NET_CURRENT_DESKTOP",
+            "_NET_WM_NAME",
+            "_NET_CLIENT_LIST"])
+
+        for key,val in a.iteritems():
+            setattr(self, key, val)
+
+        self._update_clients()
+        self._update_current_desktop()
+
+        self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_desktop)
+        self.parent.atoms[self._NET_CLIENT_LIST].append(self._update_clients)
+        self.parent.atoms[xcb.XA_WM_NAME].append(self._update_name)
+        self.parent.events[xproto.FocusInEvent].append(self._update_focus)
+        self.parent.events[xproto.DestroyNotifyEvent].append(self._destroynotify)
+        self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_current_desktop)
+        self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update_current_desktop)
+
+    def _update_current_desktop(self, evt=None):
+        conn = self.parent.connection
+        scr = self.parent.screen
+        currc = conn.core.GetProperty(0, scr.root, self._NET_CURRENT_DESKTOP,
+                xcb.XA_CARDINAL, 0, 12)
+        currp = currc.reply()
+        self.current_desktop = struct.unpack_from("I", currp.value.buf())[0]
+        self.parent.update()
+
+    def _destroynotify(self, evt):
+        id = evt.window
+        if id in self.clients:
+            del self.clients[id]
+        self.parent.update()
+
+    def _update_focus(self, evt):
+        id = evt.event
+        self.current_client = id
+        self.parent.update()
+
+    def _update_name(self, evt):
+        conn = self.parent.connection
+        id = evt.window
+        if id in self.clients:
+            r = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, xcb.XA_STRING, 0, 2**16).reply()
+            self.clients[id]['name'] = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00")
+        self.parent.update()
+
+    def _update_desktop(self, evt):
+        conn = self.parent.connection
+        id = evt.window
+        if id in self.clients:
+            r = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12).reply()
+            self.clients[id]['desktop'] = struct.unpack_from('I',r.value.buf())[0]
+        self.parent.update()
+
+    def _update_clients(self, *args):
+        conn = self.parent.connection
+        scr = self.parent.screen
+        clientsc = conn.core.GetProperty(0,
+                scr.root,
+                self._NET_CLIENT_LIST,
+                xcb.XA_WINDOW,
+                0,
+                2**16)
+
+        clientsr = clientsc.reply()
+        buf = clientsr.value.buf()
+        clients = struct.unpack_from('%dI' %clientsr.value_len, clientsr.value.buf(),0)
+
+        classes = {}
+        desktops = {}
+        names = {}
+
+        for id in clients:
+            if id not in self.clients:
+                classes[id] = conn.core.GetProperty(0, id, xcb.XA_WM_CLASS, xcb.XA_STRING, 0, 2**16)
+                desktops[id] = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12)
+                names[id] = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, xcb.XA_STRING, 0, 2**16)
+                #names[id] = conn.core.GetProperty(0, id, self._NET_WM_NAME, xcb.XA_STRING, 0, 2**16)
+
+        for id in classes:
+            r = classes[id].reply()
+            clientcls = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00").split("\x00")
+
+            r = desktops[id].reply()
+            clientdesk = struct.unpack_from('I',r.value.buf())[0]
+
+            r = names[id].reply()
+            clientname = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00")
+            
+            conn.core.ChangeWindowAttributes(id, xproto.CW.EventMask, [
+                        xproto.EventMask.PropertyChange|
+                        xproto.EventMask.FocusChange |
+                        xproto.EventMask.StructureNotify])
+
+            client = dict(id = id, name = clientname, desktop = clientdesk, cls=clientcls)
+
+            self.clients[id] = client
+        self.parent.update()
+
+    def _output(self):
+        if self.alldesktops:
+            return ' '.join(
+                    (c['name'] for c in self.clients.itervalues()))
+        
+        return ' '.join(
+                (c['name'] for c in self.clients.itervalues() if
+                    c['desktop'] == self.current_desktop))
+
+    def draw(self):
+        clients = [c for c in self.clients.itervalues() if self.alldesktops or c['desktop'] == self.current_desktop]
+        availwidth = self.width - (len(clients)-1) * self.spacing
+
+        percli = availwidth / len(clients)
+        dots = self.parent.text_width('...')
+        curx = self.x
+        for c in clients:
+            color = None
+            cliavail = percli
+            if c['id'] ==  self.current_client:
+                color = 0xff0000
+
+            if self.parent.text_width(c['name']) <= cliavail:
+                self.parent.draw_text(c['name'], color, curx)
+                curx += self.parent.text_width(c['name']) + self.spacing
+            else:
+                cliavail -= dots
+                trim = -1
+                while self.parent.text_width(c['name'][:trim]) > cliavail:
+                    trim -= 1
+
+                self.parent.draw_text(c['name'][:trim] + '...', color, curx)
+                curx += self.parent.text_width(c['name'][:trim] + '...') + self.spacing
+
+
 class Desktop(Widget):
     def __init__(self, current_fg=None, fg=None, showall=False):
         self.desktops = []
@@ -149,10 +297,10 @@ class Desktop(Widget):
 
                 if i != 0:
                     self.parent.draw_text(' ')
-                self.parent.draw_text(name, color=color)
+                self.parent.draw_text(name, color)
 
         else:
-            self.parent.draw_text(self.desktops[self.current], color=self.current_fg)
+            self.parent.draw_text(self.desktops[self.current], self.current_fg)
 
 class Volume(Widget):
     def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa', percent_color=None):
@@ -210,8 +358,8 @@ class Volume(Widget):
         elif self.percent > self.med:
             fg = self.fgmed
 
-        self.parent.draw_text("%d" % self.percent, self.x, fg)
-        self.parent.draw_text("%", color=self.percent_color)
+        self.parent.draw_text("%d" % self.percent, fg, self.x)
+        self.parent.draw_text("%", self.percent_color)
 
     def _set_alsa(self, value):
         alsaaudio.Mixer(self.device).setvolume(value)
@@ -366,6 +514,85 @@ class Systray(Widget):
             conn.flush()
             curx += task['width'] + self.spacing
 
+class Battery(Widget):
+    def __init__(self, battery="BAT0", warn_color='#e7e700', low_color='#d70000', fg_color=None ):
+        super(Battery, self).__init__()
+        self.battery = battery
+
+        self.re = re.compile('(.*):\W*(.*)')
+        self.symbols = {'charging': '^', 'discharging': '_', 'charged': '='}
+        self.fg_color = fg_color
+        self.low_color = low_color
+        self.warn_color = warn_color
+
+    def setup(self):
+        self.file = open('/proc/acpi/battery/%s/state' %self.battery, 'r')
+        self._loadinfo()
+        self.update()
+
+    def _parse(self, fileobj):
+        data = {}
+        for line in fileobj:
+            m = self.re.match(line)
+            if m:
+                data[m.group(1)] = m.group(2)
+        return data
+
+    def _loadinfo(self):
+        file = open('/proc/acpi/battery/%s/info' %self.battery, 'r')
+        data = self._parse(file)
+
+        self.capacity = int(data["last full capacity"].split()[0])
+        self.warn = int(data["design capacity warning"].split()[0])
+        self.low = int(data["design capacity low"].split()[0])
+
+    def update(self):
+        self.file.seek(0)
+        try:
+            data = self.data = self._parse(self.file)
+        except IOError:
+            self.parent.schedule(60, self.update)
+            return
+
+        state = data['charging state']
+        remaining = int(data['remaining capacity'].split()[0])
+        if state == 'discharging':
+            rate = int(data['present rate'].split()[0])
+            timeleft = remaining / float(rate)
+            hoursleft = int(timeleft)
+            minutesleft = (timeleft - hoursleft) * 60
+        else:
+            hoursleft = 0
+            minutesleft = 0
+
+        symbol = self.symbols[state]
+        self.min_width = self.parent.text_width("%2d:%02d %s%2d%s" % (hoursleft, minutesleft, symbol, float(remaining)/self.capacity * 100, symbol))
+        self.parent.schedule(60, self.update)
+
+    def draw(self):
+        data = self.data
+        state = data['charging state']
+        remaining = int(data['remaining capacity'].split()[0])
+        if state == 'discharging':
+            rate = int(data['present rate'].split()[0])
+            timeleft = remaining / float(rate)
+            hoursleft = int(timeleft)
+            minutesleft = (timeleft - hoursleft) * 60
+        else:
+            hoursleft = 0
+            minutesleft = 0
+
+        if remaining < self.warn:
+            color = self.warn_color 
+        elif remaining < self.low:
+            color = self.low_color
+        else:
+            color = self.fg_color
+
+        symbol = self.symbols[state]
+        self.parent.draw_text("%2d:%02d %s%2d%s" % (hoursleft, minutesleft, symbol, float(remaining)/self.capacity * 100, symbol) , color)
+
+
 
 class Spacer(Widget):
     def __init__(self, width=5):
@@ -383,7 +610,7 @@ class Text(Widget):
         print self.min_width
 
     def draw(self):
-        self.parent.draw_text(self.text, self.x, self.color)
+        self.parent.draw_text(self.text, self.color, self.x)
 
 class CPU(Widget):
     _initialized = False
@@ -497,6 +724,7 @@ class Caw:
 
         self.left = []
         self.right = []
+        self.variable = []
         self._timers = []
         self.events = collections.defaultdict(list)
         self.atoms = collections.defaultdict(list)
@@ -683,6 +911,10 @@ class Caw:
             w.parent = self
             w.setup()
 
+        for w in self.variable:
+            w.parent = self
+            w.setup()
+
     def mainloop(self):
         self._init_widgets()
 
@@ -777,6 +1009,18 @@ class Caw:
             rightx -= w.width
             space -= w.width
 
+        if len(self.variable) > 1:
+            pervar = space / len(self.variable)
+        else:
+            pervar = space
+
+        for w in self.variable:
+            w.x = leftx
+            w.width = pervar
+            cawc.cairo_move_to(self.cairo_c, w.x, y)
+            w.draw()
+            space -= pervar
+
     def _button_press(self, e):
         print "************ BUTTON NOTIFY ************"
         x = e.event_x
@@ -796,7 +1040,7 @@ class Caw:
             print "Found functions"
             func(e)
 
-    def draw_text(self, text, x=None, color=None):
+    def draw_text(self, text, color=None, x=None):
         if color is None:
             color = self.fg_color
 
@@ -826,9 +1070,10 @@ if __name__ == '__main__':
             height=10, border_width=1, edge=0)
 
     caw.left.append(Spacer(3))
-    caw.left.append(Desktop(showall=True, current_fg=0x8fea26))
+    caw.left.append(Desktop(showall=False, current_fg=0x8fea26))
     caw.left.append(Spacer(5))
     caw.left.append(Systray())
+    #caw.variable.append(Tasklist())
     caw.right.append(Spacer(3))
     caw.right.append(Clock(format='%H:%M:%S', color=0xffffff))
     caw.right.append(Text(" "))
@@ -841,6 +1086,8 @@ if __name__ == '__main__':
         caw.right.append(Text(" ", 0x777777))
         caw.right.append(Volume(percent_color=0xaaaaaa))
 
+    caw.right.append(Text(" :: ", 0xcf49eb))
+    caw.right.append(Battery(fg_color=0x9f78ff))
     caw.right.append(Text(" :: ", 0xcf49eb))
     caw.right.append(CPU(2, fg_color=0xdddddd))
     caw.right.append(Text(" : ", 0x777777))
