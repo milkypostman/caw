@@ -300,7 +300,7 @@ _update_struts(PyObject *self, PyObject *args)
 
 
 static PyObject *
-_set_properties(PyObject *self, PyObject *args)
+_set_hints(PyObject *self, PyObject *args)
 {
     xcb_connection_t *connection;
     xcb_window_t window;
@@ -310,6 +310,8 @@ _set_properties(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "lliiii", &connection, &window, &x, &y, &w, &h))
         return NULL;
 
+    /*
+       this is now done on the python side
     data[0] = 0xffffffff;
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_DESKTOP], CARDINAL,
@@ -319,6 +321,7 @@ _set_properties(PyObject *self, PyObject *args)
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_WINDOW_TYPE], ATOM,
             32, 1, data);
+            */
 
     xcb_wm_hints_t hints;
     xcb_size_hints_t normal_hints;
@@ -346,6 +349,7 @@ _set_properties(PyObject *self, PyObject *args)
 
     xcb_set_wm_normal_hints(connection, window, &normal_hints);
 
+    /*
     data[0] = atoms[_NET_WM_STATE_SKIP_TASKBAR];
     data[1] = atoms[_NET_WM_STATE_SKIP_PAGER];
     data[2] = atoms[_NET_WM_STATE_STICKY];
@@ -354,6 +358,7 @@ _set_properties(PyObject *self, PyObject *args)
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STATE], ATOM,
             32, 4, data);
+            */
 
     Py_RETURN_NONE;
 }
@@ -429,7 +434,7 @@ static PyMethodDef CAWCMethods[] = {
     {"cairo_select_font_face", _cairo_select_font_face, METH_VARARGS},
     {"cairo_move_to", _cairo_move_to, METH_VARARGS},
     {"cairo_show_text", _cairo_show_text, METH_VARARGS},
-    {"set_properties", _set_properties, METH_VARARGS},
+    {"set_hints", _set_hints, METH_VARARGS},
     {"update_struts", _update_struts, METH_VARARGS},
     {NULL, NULL, 0, NULL}
 };
