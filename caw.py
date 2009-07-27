@@ -816,10 +816,16 @@ class Caw:
 
 
 if __name__ == '__main__':
-    caw = Caw(font_face='mintsstrong', font_size=10, fg_color=0x979797, bg_color=0xd6d6d6, border_color=0xd6d6d6, height=10, border_width=1, edge=0)
+    caw = Caw(font_face='mintsstrong',
+            font_size=10,
+            fg_color=0x636363,
+            bg_color=0x181818,
+            shading=256/4 * 3,
+            border_color=0x303030,
+            height=10, border_width=1, edge=0)
 
     caw.left.append(Spacer(3))
-    caw.left.append(Desktop(current_fg=0xffff00))
+    caw.left.append(Desktop(current_fg=0x8fea26))
     caw.left.append(Spacer(5))
     caw.left.append(Systray())
     caw.right.append(Spacer(3))
@@ -827,11 +833,11 @@ if __name__ == '__main__':
     caw.right.append(Text(" "))
     caw.right.append(Clock(format='%Y.%m.%d', color=0xdddddd))
     caw.right.append(Text(" :: ", 0xcf49eb))
-    caw.right.append(Volume(device='PCM', percent_color=0xaaaaaa))
+    caw.right.append(Volume(device='PCM'))
     caw.right.append(Text(" ", 0x777777))
     caw.right.append(Volume(percent_color=0xaaaaaa))
     caw.right.append(Text(" :: ", 0xcf49eb))
-    caw.right.append(CPU(2, fg_color=0xdddddd, percent_color=0xaaaaaa))
-    caw.right.append(Text(" / ", 0x777777))
-    caw.right.append(CPU(1, fg_color=0xdddddd, percent_color=0xaaaaaa))
+    caw.right.append(CPU(2, fg_color=0xdddddd))
+    caw.right.append(Text(" : ", 0x777777))
+    caw.right.append(CPU(1, fg_color=0xdddddd))
     caw.mainloop()
