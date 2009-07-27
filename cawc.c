@@ -120,9 +120,12 @@ _xcb_configure_window(PyObject *self, PyObject *args)
     xcb_connection_t *connection;
     xcb_window_t win;
     uint32_t config[7];
+    memset(config, 0, sizeof(config));
 
     if (!PyArg_ParseTuple(args, "llllll", &connection, &win, &config[0], &config[1], &config[2], &config[3]))
         return NULL;
+
+    //printf("%d %d %d %d\n", config[0], config[1], config[2], config[3]);
 
     xcb_configure_window(connection, win,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
@@ -229,7 +232,7 @@ _cairo_set_font_size(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "ld", &cairo, &width))
         return NULL;
 
-    cairo_set_line_width(cairo, width);
+    cairo_set_font_size(cairo, width);
     Py_RETURN_NONE;
 }
 
@@ -285,8 +288,19 @@ _update_struts(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "lliiii", &connection, &window, &x, &y, &w, &h))
         return NULL;
 
-    data[3] = h;
-    data[11] = h;
+    if (y == 0)
+    {
+        data[2] = h;
+        data[8] = x;
+        data[9] = x+w;
+    }
+    else
+    {
+        data[3] = h;
+        data[10] = x;
+        data[11] = x+w;
+    }
+
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STRUT], CARDINAL,
             32, 4, data);
@@ -304,7 +318,6 @@ _set_hints(PyObject *self, PyObject *args)
 {
     xcb_connection_t *connection;
     xcb_window_t window;
-    uint32_t data[10];
     int x, y, w, h;
 
     if (!PyArg_ParseTuple(args, "lliiii", &connection, &window, &x, &y, &w, &h))
@@ -342,10 +355,11 @@ _set_hints(PyObject *self, PyObject *args)
     // set the normal hints
     xcb_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
 
-    normal_hints.flags |= XCB_SIZE_HINT_P_POSITION;
-    //xcb_size_hints_set_position(&normal_hints, 0, x, y);
-    //xcb_size_hints_set_min_size(&normal_hints, 10, 10);
-    //xcb_size_hints_set_max_size(&normal_hints, w, h);
+    printf("w: %d, h: %d\n", w, h);
+    //normal_hints.flags |= XCB_SIZE_HINT_P_POSITION;
+    xcb_size_hints_set_position(&normal_hints, 0, x, y);
+    xcb_size_hints_set_min_size(&normal_hints, 100, h);
+    xcb_size_hints_set_max_size(&normal_hints, w, h);
 
     xcb_set_wm_normal_hints(connection, window, &normal_hints);
 
@@ -374,7 +388,8 @@ _cairo_text_width(PyObject *self, PyObject *args)
         return NULL;
 
     cairo_text_extents(cairo, text, &te);
-    return Py_BuildValue("d", te.width);
+    return Py_BuildValue("d", te.x_advance);
+    return Py_BuildValue("d", te.x_advance);
 }
 
 static PyObject * 
