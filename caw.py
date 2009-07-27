@@ -506,16 +506,16 @@ class Caw:
         self._root_pixmap()
         self._init_cairo()
 
-        self._set_properties()
-        self._update_struts()
-
         print "Window:", self.window
         print self.x
         print self.y
         print self.width
         print self.height
+        print self.connection.core.GetWindowAttributes(self.window)
+        self._set_properties()
+        self._update_struts()
+
         self.connection.core.MapWindow(self.window)
-        self.connection.flush()
         cawc.xcb_configure_window(self.connection_c, self.window, self.x, self.y, self.width, self.height)
         self.connection.flush()
 
@@ -625,15 +625,17 @@ class Caw:
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, xcb.XA_WM_CLASS, xcb.XA_STRING, 8, len("caw\0CAW\0"), "caw\0CAW\0")
 
+        cawc.set_hints(self.connection_c, self.window, self.x, self.y, self.width, self.height);
+
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 32, 1, struct.pack("I",0xffffffff))
+
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._WIN_STATE, xcb.XA_CARDINAL, 32, 1, struct.pack("I",1))
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
 
         conn.core.ChangeWindowAttributes(scr.root,
                 xproto.CW.EventMask, 
                 [xproto.EventMask.PropertyChange|xproto.EventMask.StructureNotify])
-
-        cawc.set_hints(self.connection_c, self.window, self.x, self.y, self.width, self.height);
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
 
