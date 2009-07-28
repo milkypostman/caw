@@ -23,14 +23,15 @@ except ImportError:
 import ossaudiodev
 
 class Widget(object):
+    width = 0
+    x = 0
+    min_width = 0
+    parent = None
+
     def __init__(self):
         super(Widget, self).__init__()
-        self.width = 0
-        self.x = 0
-        self.min_width = 0
-        self.parent = None
 
-    def buttonpress(self, button, x):
+    def button_press(self, button, x):
         pass
 
     def setup(self):
@@ -38,6 +39,82 @@ class Widget(object):
 
     def draw(self):
         pass
+
+class AllOrNothing(Widget):
+    def __init__(self, *widgets):
+        super(AllOrNothing, self).__init__()
+        self.widgets = widgets
+
+    def setup(self):
+        self.varcount = 0
+        self.default_total = 0
+        for w in self.widgets:
+            if w.min_width < 0:
+                self.varcount += 1
+                self.default_total = -float('inf')
+            w.setup()
+
+    def _get_min_width(self):
+        total = self.default_total
+        variable = False
+        for w in self.widgets:
+            mw = w.min_width
+            if mw == 0:
+                return 0
+
+            total += mw
+
+        return total
+
+    min_width = property(_get_min_width)
+
+    def _get_parent(self):
+        return self._parent
+
+    def _set_parent(self, parent):
+        self._parent = parent
+        for w in self.widgets:
+            w.parent = parent
+
+    parent = property(_get_parent, _set_parent)
+
+    def button_press(self, button, x):
+        print "ALL OR NOTHING BUTTON"
+        left = 0
+        right = len(self.widgets)
+        while left < right:
+            mid = (left + right) / 2
+            w = self.widgets[mid]
+            if x < w.x:
+                right = mid
+            elif x >= w.x+w.width:
+                left = mid+1
+            else:
+                w.button_press(button, x)
+                break
+
+    def draw(self):
+        varspace = self.width
+        for w in self.widgets:
+            ww = w.min_width
+            if ww == 0:
+                return
+
+            if ww > 0:
+                varspace -= ww
+
+        if self.varcount > 0:
+            varspace /= self.varcount
+
+        curx = self.x
+        for w in self.widgets:
+            ww = w.min_width
+            if ww < 0:
+                varspace = ww
+            w.x = curx
+            w.width = ww
+            w.draw()
+            curx += ww
 
 class Clock(Widget):
     def __init__(self, format="%Y.%m.%d %H:%M:%S", color=None):
@@ -66,6 +143,7 @@ class Tasklist(Widget):
         self.current_client = None
         self.trim_length = 0
         self.spacing = 5
+        self.min_width = -1
 
     def setup(self):
         a = self.parent.get_atoms([
@@ -215,7 +293,6 @@ class Desktop(Widget):
         self.showall = showall
 
     def setup(self):
-        print "setup"
         a = self.parent.get_atoms([
             "_NET_CURRENT_DESKTOP",
             "_NET_WM_DESKTOP",
@@ -240,7 +317,6 @@ class Desktop(Widget):
         #    self.gc = self.parent.root.create_gc()
 
     def _get_desktops(self, *args):
-        print "get desk"
         conn = self.parent.connection
         scr = self.parent.screen
         totalc = conn.core.GetProperty(0,
@@ -367,7 +443,7 @@ class Volume(Widget):
     def _set_oss(self, value):
         self.mixer.set(self.device_mask, (value,value))
 
-    def buttonpress(self, button, x):
+    def button_press(self, button, x):
         if button == 5:
             newval =  max(self.current-self.step, self.min)
             getattr(self, "_set_" + self.driver)(newval)
@@ -411,7 +487,6 @@ class Systray(Widget):
             ])
 
         for key,val in a.iteritems():
-            print key, val
             setattr(self, key, val)
 
         self.window = conn.generate_id()
@@ -423,7 +498,7 @@ class Systray(Widget):
                 0,
                 [])
 
-        print "Systray window:", self.window
+        #print "Systray window:", self.window
 
         # have to manually build the event!
         response_type = 33 # XCB_CLIENT_MESSAGE
@@ -437,17 +512,21 @@ class Systray(Widget):
         e = conn.core.SetSelectionOwnerChecked(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
         e = conn.core.SendEventChecked(0, scr.root, 0xffffff, event)
 
+    def _set_min_width(self):
+        min_width=self.icon_size*len(self.tasks)+ self.spacing * (len(self.tasks)-1)
+        self.min_width = max(min_width, 0)
 
     def _destroynotify(self, event):
-        print "********* DESTROY NOTIFY **************"
+        #print "********* DESTROY NOTIFY **************"
         if event.window in self.tasks:
             conn = self.parent.connection
             del self.tasks[event.window]
-            self.min_width=self.icon_size*len(self.tasks)+ self.spacing * (len(self.tasks)-1)
+            self._set_min_width()
+
 
     def _clientmessage(self, event):
         if event.window == self.window:
-            print "!!!!!!!!!!!!! CLIENT MESSAGE !!!!!!!!!!!!!!!"
+            #print "!!!!!!!!!!!!! CLIENT MESSAGE !!!!!!!!!!!!!!!"
             opcode = xproto.ClientMessageData(event, 0, 20).data32[2]
             data = xproto.ClientMessageData(event, 12, 20)
             task = data.data32[2]
@@ -460,7 +539,7 @@ class Systray(Widget):
                 conn.core.ChangeWindowAttributes(task, xproto.CW.EventMask, [xproto.EventMask.Exposure|xproto.EventMask.StructureNotify])
                 conn.flush()
                 self.tasks[task] = dict(x=0, y=0, width=self.icon_size, height=self.icon_size)
-                self.min_width=self.icon_size*len(self.tasks)+ self.spacing * (len(self.tasks)-1)
+                self._set_min_width()
                 self.parent.update()
 
     def _configure_window(self, window, x, y, w, h):
@@ -482,21 +561,21 @@ class Systray(Widget):
         #        struct.pack('IIIIIII', x,y,w,h,0,0,0))
 
     def _configurenotify(self, event):
-        print "********* CONFIGURE NOTIFY **************"
+        #print "********* CONFIGURE NOTIFY **************"
         if event.window in self.tasks:
-            print 'HERES OUR WINDOW!'
+            #print 'HERES OUR WINDOW!'
             task = self.tasks[event.window]
             conn = self.parent.connection
             self._configure_window(event.window,
                     task['x'], task['y'],
                     task['width'], task['height'])
+            self._set_min_width()
             #conn.core.ChangeWindowAttributes(event.window, xproto.CW.EventMask, [xproto.EventMask.StructureNotify])
 
     def draw(self):
         curx = self.x
 
         conn = self.parent.connection
-        width = max(self.min_width, 1)
         #self._configure_window(self.window, curx, 0, width, self.parent.height)
         #conn.core.ClearArea(0, self.window, 0, 0, width, self.parent.height)
         #conn.core.MapWindow(self.window)
@@ -505,11 +584,9 @@ class Systray(Widget):
             task = self.tasks[taskwin]
             task['x'] = curx
             task['y'] = (self.parent.height - task['height'])/2
-            print "CONFIGURE"
             self._configure_window(taskwin,
                     task['x'], task['y'],
                     task['width'], task['height'])
-            print "MAP"
             conn.core.MapWindow(taskwin)
             conn.flush()
             curx += task['width'] + self.spacing
@@ -607,7 +684,6 @@ class Text(Widget):
 
     def setup(self):
         self.min_width = self.parent.text_width(self.text)
-        print self.min_width
 
     def draw(self):
         self.parent.draw_text(self.text, self.color, self.x)
@@ -722,9 +798,7 @@ class Caw:
         self.font_face = font_face
         self.font_size = font_size
 
-        self.left = []
-        self.right = []
-        self.variable = []
+        self.widgets = []
         self._timers = []
         self.events = collections.defaultdict(list)
         self.atoms = collections.defaultdict(list)
@@ -903,15 +977,7 @@ class Caw:
             i+=1
 
     def _init_widgets(self):
-        for w in self.left:
-            w.parent = self
-            w.setup()
-
-        for w in self.right:
-            w.parent = self
-            w.setup()
-
-        for w in self.variable:
+        for w in self.widgets:
             w.parent = self
             w.setup()
 
@@ -939,9 +1005,9 @@ class Caw:
             while True:
                 try:
                     event = conn.poll_for_event()
-                    print "Event:", type(event)
-                    print "OpCode:", event.type
-                    print "Window:", getattr(event, 'window', None)
+                    #print "Event:", type(event)
+                    #print "OpCode:", event.type
+                    #print "Window:", getattr(event, 'window', None)
                     if event.type == 161:
                         event = xproto.ClientMessageEvent(event)
                     for func in self.events[type(event)]:
@@ -987,51 +1053,46 @@ class Caw:
         #    self._update_background()
         #    self._background_needs_update -= 1
         self.clear(0, 0, self.width, self.height)
-        space = self.width-self.border_width*2
-        leftx = self.border_width
+        varspace = self.width-self.border_width*2
+        varcount = 0
+
+        for w in self.widgets:
+            if w.min_width < 0:
+                varcount += 1
+            else:
+                varspace -= w.min_width
+
+        if varcount > 0:
+            varspace /= varcount
+
+        x = self.border_width
         y =  (self.height + self._font_height)/2
-        for w in self.left:
-            wh = w.min_width
-            w.x = leftx
-            w.width = wh
+        for w in self.widgets:
+            ww = w.min_width
+            if ww < 0:
+                ww = varspace
+            w.x = x
+            w.width = ww
             cawc.cairo_move_to(self.cairo_c, w.x, y)
             w.draw()
-            leftx += w.width
-            space -= w.width
-
-        rightx = self.width - self.border_width
-        for w in self.right:
-            wh = w.min_width
-            w.x = rightx - wh
-            w.width = wh
-            cawc.cairo_move_to(self.cairo_c, w.x, y)
-            w.draw()
-            rightx -= w.width
-            space -= w.width
-
-        if len(self.variable) > 1:
-            pervar = space / len(self.variable)
-        else:
-            pervar = space
-
-        for w in self.variable:
-            w.x = leftx
-            w.width = pervar
-            cawc.cairo_move_to(self.cairo_c, w.x, y)
-            w.draw()
-            space -= pervar
+            x += ww
 
     def _button_press(self, e):
         print "************ BUTTON NOTIFY ************"
         x = e.event_x
-        if x < self.left[-1].x + self.left[-1].width:
-            for w in self.left:
-                if x >= w.x and x < w.x + w.width:
-                    w.buttonpress(e.detail, e.event_x - w.x)
-        elif x > self.right[-1].x:
-            for w in self.right:
-                if x >= w.x and x < w.x + w.width:
-                    w.buttonpress(e.detail, e.event_x - w.x)
+        left = 0
+        right = len(self.widgets)
+        while left < right:
+            mid = (left + right) / 2
+            w = self.widgets[mid]
+            if x < w.x:
+                right = mid
+            elif x >= w.x+w.width:
+                left = mid+1
+            else:
+                print w
+                w.button_press(e.detail, e.event_x)
+                break
 
     def _property_notify(self, e):
         print "************ PROPERTY NOTIFY ************"
@@ -1069,27 +1130,40 @@ if __name__ == '__main__':
             border_color=0x303030,
             height=10, border_width=1, edge=0)
 
-    caw.left.append(Spacer(3))
-    caw.left.append(Desktop(showall=False, current_fg=0x8fea26))
-    caw.left.append(Spacer(5))
-    caw.left.append(Systray())
-    #caw.variable.append(Tasklist())
-    caw.right.append(Spacer(3))
-    caw.right.append(Clock(format='%H:%M:%S', color=0xffffff))
-    caw.right.append(Text(" "))
-    caw.right.append(Clock(format='%Y.%m.%d', color=0xdddddd))
-    caw.right.append(Text(" :: ", 0xcf49eb))
-
     hostname = socket.gethostname()
-    caw.right.append(Volume(device='PCM'))
-    if hostname == 'baracus':
-        caw.right.append(Text(" ", 0x777777))
-        caw.right.append(Volume(percent_color=0xaaaaaa))
 
-    caw.right.append(Text(" :: ", 0xcf49eb))
-    caw.right.append(Battery(fg_color=0x9f78ff))
-    caw.right.append(Text(" :: ", 0xcf49eb))
-    caw.right.append(CPU(2, fg_color=0xdddddd))
-    caw.right.append(Text(" : ", 0x777777))
-    caw.right.append(CPU(1, fg_color=0xdddddd))
+    caw.widgets.append(Spacer(3))
+    caw.widgets.append(Desktop(showall=False, current_fg=0x8fea26))
+    caw.widgets.append(Spacer(5))
+    caw.widgets.append(AllOrNothing(
+        Text(" :: ", 0xcf49eb),
+        Systray())
+        )
+    caw.widgets.append(Spacer(-1))
+    #caw.variable.append(Tasklist())
+    caw.widgets.append(CPU(1, fg_color=0xdddddd))
+    caw.widgets.append(Text(" : ", 0x777777))
+    caw.widgets.append(CPU(2, fg_color=0xdddddd))
+
+    caw.widgets.append(Text(" :: ", 0xcf49eb))
+
+    if hostname == 'murdock':
+        caw.widgets.append(Battery(fg_color=0x9f78ff))
+        caw.widgets.append(Text(" :: ", 0xcf49eb))
+
+    caw.widgets.append(Volume(device='PCM'))
+    if hostname == 'baracus':
+        caw.widgets.append(Text(" ", 0x777777))
+        caw.widgets.append(Volume(percent_color=0xaaaaaa))
+
+    caw.widgets.append(Text(" :: ", 0xcf49eb))
+
+    caw.widgets.append(Clock(format='%Y.%m.%d', color=0xdddddd))
+    caw.widgets.append(Text(" "))
+    caw.widgets.append(Clock(format='%H:%M:%S', color=0xffffff))
+    caw.widgets.append(Spacer(3))
+
+
+
+
     caw.mainloop()
