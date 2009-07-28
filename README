@@ -1,0 +1,20 @@
+CAW!!!
+
+CAW is a easily customizable taskbar written in Python.
+
+
+Building
+---
+python setup.py build
+
+
+Running
+---
+./caw
+
+
+Configuration
+---
+Currently configuration is done by modifying the 'caw' python file or creating
+your own, importing the caw modules and running that file.  This allows you to
+add external modules etc.
