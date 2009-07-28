@@ -1134,7 +1134,7 @@ if __name__ == '__main__':
 
     caw.widgets.append(Spacer(3))
     caw.widgets.append(Desktop(showall=False, current_fg=0x8fea26))
-    caw.widgets.append(Spacer(5))
+    #caw.widgets.append(Spacer(3))
     caw.widgets.append(AllOrNothing(
         Text(" :: ", 0xcf49eb),
         Systray())
