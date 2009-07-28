@@ -30,7 +30,7 @@ except:
 
 # Fix the shebang and add the Imlib2 workaround if necessary
 if len(sys.argv) > 1 and sys.argv[1] != "sdist":
-    for line in fileinput.input(["pynel.py"], inplace=1):
+    for line in fileinput.input(["bin/caw"], inplace=1):
         if fileinput.isfirstline():
             print "#!%s -OO" % sys.executable
         else:
@@ -38,8 +38,8 @@ if len(sys.argv) > 1 and sys.argv[1] != "sdist":
 
 
 # Distutils config
-module = Extension("cawc",
-                   sources            = ["cawc.c"],
+module = Extension("caw/cawc",
+                   sources            = ["caw/cawc.c"],
                    include_dirs       = [],
                    library_dirs       = ldirs,
                    libraries          = ['xcb','xcb-atom','xcb-icccm','cairo'],
@@ -58,6 +58,6 @@ setup(name             = "CAW!",
       long_description = "See README for more information",
       url              = "http://caw.sourceforge.net",
       data_files       = [(install_dir, files)],
-      scripts          = ["caw.py"],
+      scripts          = ["bin/caw"],
       ext_modules      = [module]
       )

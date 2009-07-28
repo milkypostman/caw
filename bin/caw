@@ -1,0 +1,70 @@
+#!/usr/bin/python -OO
+
+from caw import Caw
+
+import os
+import sys
+import subprocess
+
+_main_environ = "CAW_MAIN"
+
+if __name__ == '__main__':
+    # try to load default config from the various xdg directories
+    global_config_dirs = os.path.expandvars('$XDG_CONFIG_DIRS')
+    if global_config_dirs == '$XDG_CONFIG_DIRS':
+        global_config_dirs = ["/etc/xdg",]
+    else:
+        global_config_dirs = global_config_dirs.split(':')
+
+    for dir in global_config_dirs:
+        default_filename = None
+        default_filename = os.path.join(dir, "caw", "config.py")
+    #    default_config = {}
+        if os.path.isfile(default_filename):
+           break
+
+    #if os.path.isfile(default_filename):
+    #    execfile(default_filename, {}, default_config)
+
+    # try to load the user configuration file
+    home_config_dir = os.path.expandvars('$XDG_CONFIG_HOME')
+    if home_config_dir == '$XDG_CONFIG_HOME':
+        home_config_dir = os.path.expanduser("~/.config")
+    user_filename = os.path.join(home_config_dir, "caw", "config.py")
+
+    #user_config = {}
+    #if os.path.isfile(filename):
+        #execfile(filename, {}, user_config)
+
+    if os.path.isfile(user_filename):
+        filename = user_filename
+    elif os.path.isfile(default_filename):
+        filename = default_filename
+    else:
+        raise Exception("No config files found")
+
+
+    # save our values
+    # this acts a wrapper so we can restart our server fresh
+    while 1:
+        # got this from paster!
+        args = ['python',filename]
+        print args
+        new_environ = os.environ.copy()
+        new_environ[_main_environ] = 'true'
+        proc = None
+        try:
+            proc = subprocess.Popen(args, env=new_environ)
+            exit_code = proc.wait()
+            proc = None
+            #print "EXIT ON:", exit_code
+            if exit_code != 5:
+                break
+        finally:
+            # proc has not yet been disconnected
+            if (proc is not None and hasattr(os, 'kill')):
+                import signal
+                try:
+                    os.kill(proc.pid, signal.SIGTERM)
+                except (OSError, IOError):
+                    pass
