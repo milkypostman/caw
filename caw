@@ -81,6 +81,7 @@ class Desktop(Widget):
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update)
         self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update)
         self.parent.atoms[self._NET_DESKTOP_NAMES].append(self._get_desktops)
+        self.parent.atoms[self._NET_NUMBER_OF_DESKTOPS].append(self._get_desktops)
         self._get_desktops()
         #if self.fg is None:
         #    self.fg = self.parent.fg
@@ -90,7 +91,7 @@ class Desktop(Widget):
         #if self.current_bg is not None or self.bg is not None:
         #    self.gc = self.parent.root.create_gc()
 
-    def _get_desktops(self):
+    def _get_desktops(self, *args):
         print "get desk"
         conn = self.parent.connection
         scr = self.parent.screen
@@ -120,7 +121,7 @@ class Desktop(Widget):
     def _output(self):
         out = ""
         if self.showall:
-            return ' '.join(self.desktops)
+            return ' '.join(self.desktops[:self.num_desktops])
         else:
             return self.desktops[self.current]
 
@@ -140,8 +141,7 @@ class Desktop(Widget):
         color = self.fg
         curx = self.x
         if self.showall:
-            last = len(self.desktops) - 1
-            for i, name in enumerate(self.desktops):
+            for i, name in enumerate(self.desktops[:self.num_desktops]):
                 if i == self.current:
                     color = self.current_fg
                 else:
@@ -826,7 +826,7 @@ if __name__ == '__main__':
             height=10, border_width=1, edge=0)
 
     caw.left.append(Spacer(3))
-    caw.left.append(Desktop(current_fg=0x8fea26))
+    caw.left.append(Desktop(showall=True, current_fg=0x8fea26))
     caw.left.append(Spacer(5))
     caw.left.append(Systray())
     caw.right.append(Spacer(3))
