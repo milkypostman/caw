@@ -2,19 +2,33 @@ CAW!!!
 
 CAW is a easily customizable taskbar written in Python.
 
+Dependencies
+--
+
+libxcb 1.2
+xcb-proto 1.4
+xcb-util 0.3.4
+xpyb 1.1
+cairo 1.8.8
+
 
 Building
----
+--
 python setup.py build
 
 
 Running
----
+--
 ./caw
 
 
 Configuration
----
+--
 Currently configuration is done by modifying the 'caw' python file or creating
 your own, importing the caw modules and running that file.  This allows you to
 add external modules etc.
+
+
+TODO
+--
+There is a lot left to do.  Contributions are highly welcomed.
