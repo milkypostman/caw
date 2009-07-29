@@ -5,8 +5,8 @@ import struct
 import caw.cawc as cawc
 
 class Systray(caw.widget.Widget):
-    def __init__(self, spacing=2, icon_size=None):
-        super(Systray, self).__init__()
+    def __init__(self, spacing=2, icon_size=None, **kwargs):
+        super(Systray, self).__init__(**kwargs)
         self.spacing=spacing
         self.icon_size = icon_size
 

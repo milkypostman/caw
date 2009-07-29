@@ -20,8 +20,10 @@ class Volume(caw.widget.Widget):
             driver = 'oss'
 
         self.driver = driver
-        self.buttons[4] = self.button4
-        self.buttons[5] = self.button5
+
+        # set default button arguments
+        self.buttons[4] = self.buttons.get(4, self.button4)
+        self.buttons[5] = self.buttons.get(5, self.button5)
 
     def init(self, parent):
         super(Volume, self).init(parent)

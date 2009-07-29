@@ -2,8 +2,8 @@ import caw.widget
 import time
 
 class Clock(caw.widget.Widget):
-    def __init__(self, format="%Y.%m.%d %H:%M:%S", color=None):
-        super(Clock, self).__init__()
+    def __init__(self, format="%Y.%m.%d %H:%M:%S", color=None, **kwargs):
+        super(Clock, self).__init__(**kwargs)
         self.format = format
         self.color = color
 

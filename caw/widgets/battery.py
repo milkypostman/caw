@@ -2,8 +2,8 @@ import caw.widget
 import re
 
 class Battery(caw.widget.Widget):
-    def __init__(self, battery="BAT0", warn_color='#e7e700', low_color='#d70000', fg_color=None ):
-        super(Battery, self).__init__()
+    def __init__(self, battery="BAT0", warn_color='#e7e700', low_color='#d70000', fg_color=None, **kwargs):
+        super(Battery, self).__init__(**kwargs)
         self.battery = battery
 
         self.re = re.compile('(.*):\W*(.*)')

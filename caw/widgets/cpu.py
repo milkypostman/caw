@@ -18,8 +18,8 @@ class CPU(caw.widget.Widget):
     _initialized = False
     _widgets = collections.defaultdict(list)
 
-    def __init__(self, cpu=0, fg_color=None, med_color=0xffff00, high_color=0xff0000, med_threshold=40, high_threshold=80, show_percent=False):
-        super(CPU, self).__init__()
+    def __init__(self, cpu=0, fg_color=None, med_color=0xffff00, high_color=0xff0000, med_threshold=40, high_threshold=80, show_percent=False, **kwargs):
+        super(CPU, self).__init__(**kwargs)
         self.cpu = cpu
         self.fg_color = fg_color
         self.med_color = med_color

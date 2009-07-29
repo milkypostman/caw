@@ -4,8 +4,8 @@ import struct
 import xcb.xproto as xproto
 
 class Tasklist(caw.widget.Widget):
-    def __init__(self, alldesktops=False):
-        super(Tasklist, self).__init__()
+    def __init__(self, alldesktops=False, **kwargs):
+        super(Tasklist, self).__init__(**kwargs)
         self.alldesktops = alldesktops
         self.clients = {}
         self.current_desktop = None

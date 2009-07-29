@@ -3,7 +3,8 @@ import xcb
 import struct
 
 class Desktop(caw.widget.Widget):
-    def __init__(self, current_fg=None, fg=None, showall=False):
+    def __init__(self, current_fg=None, fg=None, showall=False, **kwargs):
+        super(Desktop, self).__init__(**kwargs)
         self.desktops = []
         self.current = 0
         self.fg = fg

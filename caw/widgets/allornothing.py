@@ -11,9 +11,9 @@ class AllOrNothing(caw.widget.Widget):
     (such as the systray) but other widgets may not want to be displayed during this time.
     """
 
-    def __init__(self, *widgets):
+    def __init__(self, *widgets, **kwargs):
         self.widgets = widgets
-        super(AllOrNothing, self).__init__()
+        super(AllOrNothing, self).__init__(**kwargs)
 
     def init(self, parent):
         self.parent = parent
