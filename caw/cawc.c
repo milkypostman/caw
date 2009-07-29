@@ -153,7 +153,7 @@ _update_struts(PyObject *self, PyObject *args)
     {
         data[2] = h;
         data[8] = x;
-        data[9] = x+10;
+        data[9] = x+w;
     }
     else
     {
