@@ -56,7 +56,6 @@ class Caw:
 
         self._init_window()
         self._init_atoms()
-        self._root_pixmap()
         self._init_cairo()
 
         print "Window:", self.window
@@ -109,6 +108,8 @@ class Caw:
                 0,
                 xproto.WindowClass.InputOutput,
                 scr.root_visual,
+                #xproto.CW.BackPixmap | xproto.CW.BackPixel | xproto.CW.EventMask,
+                #[self.back_pixmap, self.screen.black_pixel,
                 xproto.CW.BackPixmap | xproto.CW.EventMask,
                 [self.back_pixmap,
                     xproto.EventMask.Exposure |
@@ -166,6 +167,8 @@ class Caw:
                 xcb.XA_PIXMAP, 0, 10)
 
         rep = cookie.reply()
+        if len(rep.value.buf()) < 4:
+            return
         return struct.unpack_from("I", rep.value.buf())[0]
 
     def _set_properties(self):
@@ -200,12 +203,13 @@ class Caw:
         #print "updating background"
         conn = self.connection
         rp = self._root_pixmap()
-        conn.core.CopyArea(rp,
-            self.back_pixmap,
-            self._gc,
-            self.x, self.y,
-            0,0,
-            self.width, self.height)
+        if rp is not None:
+            conn.core.CopyArea(rp,
+                self.back_pixmap,
+                self._gc,
+                self.x, self.y,
+                0,0,
+                self.width, self.height)
 
         r = (self.bg_color >> 16) / 255.
         g = ((self.bg_color >> 8) & 0xff) / 255.
