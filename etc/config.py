@@ -65,7 +65,6 @@ vol = Volume(device='PCM')
 widgets.append(vol)
 widgets.append(Text("% ", 0xaaaaaa, button5=vol.button5, button4=vol.button4))
 if hostname == 'baracus':
-    widgets.append(Text(" ", 0x777777))
     vol = Volume()
     widgets.append(vol)
     widgets.append(Text("% ", 0xaaaaaa, button5=vol.button5, button4=vol.button4))
