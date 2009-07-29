@@ -29,12 +29,12 @@ except:
     sys.exit()
 
 # Fix the shebang and add the Imlib2 workaround if necessary
-if len(sys.argv) > 1 and sys.argv[1] != "sdist":
-    for line in fileinput.input(["bin/caw"], inplace=1):
-        if fileinput.isfirstline():
-            print "#!%s -OO" % sys.executable
-        else:
-            print line,
+#if len(sys.argv) > 1 and sys.argv[1] != "sdist":
+#    for line in fileinput.input(["bin/caw"], inplace=1):
+#        if fileinput.isfirstline():
+#            print "#!%s -OO" % sys.executable
+#        else:
+#            print line,
 
 
 # Distutils config
