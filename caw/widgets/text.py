@@ -1,6 +1,6 @@
-import caw
+import caw.widget
 
-class Text(caw.Widget):
+class Text(caw.widget.Widget):
     def __init__(self, text="undefined", color=None):
         super(Text, self).__init__()
         self.text = text

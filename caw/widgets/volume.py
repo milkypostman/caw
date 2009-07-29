@@ -1,4 +1,4 @@
-import caw
+import caw.widget
 import operator
 
 try:
@@ -8,7 +8,7 @@ except ImportError:
 
 import ossaudiodev
 
-class Volume(caw.Widget):
+class Volume(caw.widget.Widget):
     def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa', percent_color=None, **kwargs):
         super(Volume, self).__init__(**kwargs)
         self.device = device

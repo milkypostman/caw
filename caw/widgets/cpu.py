@@ -1,11 +1,11 @@
-import caw
+import caw.widget
 import collections
 import re
 import itertools
 import operator
 import math
 
-class CPU(caw.Widget):
+class CPU(caw.widget.Widget):
     _initialized = False
     _widgets = collections.defaultdict(list)
 

@@ -1,7 +1,7 @@
-import caw
+import caw.widget
 import re
 
-class Battery(caw.Widget):
+class Battery(caw.widget.Widget):
     def __init__(self, battery="BAT0", warn_color='#e7e700', low_color='#d70000', fg_color=None ):
         super(Battery, self).__init__()
         self.battery = battery

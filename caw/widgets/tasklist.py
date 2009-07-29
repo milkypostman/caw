@@ -1,9 +1,9 @@
-import caw
+import caw.widget
 import xcb
 import struct
 import xcb.xproto as xproto
 
-class Tasklist(caw.Widget):
+class Tasklist(caw.widget.Widget):
     def __init__(self, alldesktops=False):
         super(Tasklist, self).__init__()
         self.alldesktops = alldesktops

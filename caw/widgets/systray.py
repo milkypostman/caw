@@ -1,10 +1,10 @@
-import caw
+import caw.widget
 import xcb
 import xcb.xproto as xproto
 import struct
 import caw.cawc as cawc
 
-class Systray(caw.Widget):
+class Systray(caw.widget.Widget):
     def __init__(self, spacing=2, icon_size=None):
         super(Systray, self).__init__()
         self.spacing=spacing

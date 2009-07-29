@@ -1,8 +1,8 @@
-import caw
+import caw.widget
 import xcb
 import struct
 
-class Desktop(caw.Widget):
+class Desktop(caw.widget.Widget):
     def __init__(self, current_fg=None, fg=None, showall=False):
         self.desktops = []
         self.current = 0

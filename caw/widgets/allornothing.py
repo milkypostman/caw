@@ -1,6 +1,6 @@
-import caw
+import caw.widget
 
-class AllOrNothing(caw.Widget):
+class AllOrNothing(caw.widget.Widget):
     def __init__(self, *widgets):
         super(AllOrNothing, self).__init__()
         self.widgets = widgets
