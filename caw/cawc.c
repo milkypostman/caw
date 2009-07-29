@@ -341,7 +341,7 @@ _set_hints(PyObject *self, PyObject *args)
 
     // send requests
     xcb_get_property_cookie_t hint_c = xcb_get_wm_hints(connection, window);
-    xcb_get_property_cookie_t normal_hints_c = xcb_get_wm_normal_hints(connection, window);
+    //xcb_get_property_cookie_t normal_hints_c = xcb_get_wm_normal_hints(connection, window);
 
 
     // set wm hints
