@@ -154,7 +154,7 @@ _update_struts(PyObject *self, PyObject *args)
     {
         data[2] = h;
         data[8] = x;
-        data[9] = x+w;
+        data[9] = x+10;
     }
     else
     {
@@ -163,9 +163,11 @@ _update_struts(PyObject *self, PyObject *args)
         data[11] = x+w;
     }
 
+    /*
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STRUT], CARDINAL,
             32, 4, data);
+            */
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STRUT_PARTIAL], CARDINAL,
