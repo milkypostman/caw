@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
-import caw.caw
 import os
 import sys
 import subprocess
-Caw = caw.caw.Caw
 
 _main_environ = "CAW_MAIN"
 

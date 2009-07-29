@@ -87,7 +87,7 @@ _xcb_configure_window(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "lIIIII", &connection, &win, &config[0], &config[1], &config[2], &config[3]))
         return NULL;
 
-    printf("%ld %d %d %d %d\n", win, config[0], config[1], config[2], config[3]);
+    //printf("%ld %d %d %d %d\n", win, config[0], config[1], config[2], config[3]);
 
     xcb_configure_window(connection, win,
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
@@ -217,7 +217,7 @@ _set_hints(PyObject *self, PyObject *args)
     // set the normal hints
     xcb_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
 
-    printf("w: %d, h: %d\n", w, h);
+    //printf("w: %d, h: %d\n", w, h);
     normal_hints.flags = XCB_SIZE_HINT_P_POSITION;
     xcb_size_hints_set_position(&normal_hints, 0, x, y);
     xcb_size_hints_set_min_size(&normal_hints, w, h);

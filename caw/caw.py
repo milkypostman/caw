@@ -46,9 +46,9 @@ class Caw:
 
         self.widgets = kwargs.get('widgets', [])
         self._mtime = os.path.getmtime(sys.argv[0])
-        print self.widgets
-        print '----'
-        print kwargs
+        #print self.widgets
+        #print '----'
+        #print kwargs
         self._timers = []
         self.events = collections.defaultdict(list)
         self.atoms = collections.defaultdict(list)
@@ -60,11 +60,10 @@ class Caw:
         self._init_cairo()
 
         print "Window:", self.window
-        print self.x
-        print self.y
-        print self.width
-        print self.height
-        print self.connection.core.GetWindowAttributes(self.window)
+        print "X:", self.x
+        print "Y:", self.y
+        print "Width:", self.width
+        print "Height:", self.height
         self._set_properties()
         self._update_struts()
         self._update_background()
@@ -198,7 +197,7 @@ class Caw:
                 self.x, self.y, self.width, self.height)
 
     def _update_background(self, *_):
-        print "updating background"
+        #print "updating background"
         conn = self.connection
         rp = self._root_pixmap()
         conn.core.CopyArea(rp,
@@ -331,7 +330,7 @@ class Caw:
             x += ww
 
     def _button_press(self, e):
-        print "************ BUTTON NOTIFY ************"
+        #print "************ BUTTON NOTIFY ************"
         x = e.event_x
         left = 0
         right = len(self.widgets)
@@ -343,15 +342,15 @@ class Caw:
             elif x >= w.x+w.width:
                 left = mid+1
             else:
-                print w
+                #print w
                 w.button_press(e.detail, e.event_x)
                 break
 
     def _property_notify(self, e):
-        print "************ PROPERTY NOTIFY ************"
-        print "Atom:",e.atom
+        #print "************ PROPERTY NOTIFY ************"
+        #print "Atom:",e.atom
         for func in self.atoms[e.atom]:
-            print "Found functions"
+            #print "Found functions"
             func(e)
 
     def draw_text(self, text, color=None, x=None):

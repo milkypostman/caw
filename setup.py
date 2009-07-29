@@ -1,4 +1,4 @@
-import fileinput, os, sys
+import fileinput, os, sys, glob
 from distutils.core import Extension, setup
 from distutils import sysconfig
 
@@ -48,6 +48,16 @@ module = Extension("caw/cawc",
                    define_macros      = defs,
                    )
 
+py_modules = []
+
+for file in glob.glob("caw/*.py"):
+    py_modules.append(file[:-3])
+
+for file in glob.glob("caw/widgets/*.py"):
+    py_modules.append(file[:-3])
+
+print py_modules
+
 setup(name             = "CAW!",
       author           = "Donald Ephraim Curtis",
       author_email     = "dcurtis@gmail.com",
@@ -57,7 +67,8 @@ setup(name             = "CAW!",
       description      = "Lightweight panel/taskbar for X11 Window Managers",
       long_description = "See README for more information",
       url              = "http://caw.sourceforge.net",
-      data_files       = [(install_dir, files)],
+      #data_files       = [(install_dir, files)],
       scripts          = ["bin/caw"],
+      py_modules       = py_modules,
       ext_modules      = [module]
       )
