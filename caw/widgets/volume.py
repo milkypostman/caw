@@ -9,17 +9,19 @@ except ImportError:
 import ossaudiodev
 
 class Volume(caw.widget.Widget):
-    def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa', percent_color=None, **kwargs):
+    def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa', show_percent=False, **kwargs):
         super(Volume, self).__init__(**kwargs)
         self.device = device
         self.med = med
         self.high = high
         self.step = step
-        self.percent_color = percent_color
+        self.show_percent = show_percent
         if driver == 'alsa' and alsaaudio is None :
             driver = 'oss'
 
         self.driver = driver
+        self.buttons[4] = self.button4
+        self.buttons[5] = self.button5
 
     def init(self, parent):
         super(Volume, self).init(parent)
@@ -55,7 +57,10 @@ class Volume(caw.widget.Widget):
 
     def _update(self):
         getattr(self, "_update_" + self.driver)()
-        self.width_hint = self.parent.text_width("%d%%" % self.percent)
+        if self.show_percent:
+            self.width_hint = self.parent.text_width("%d%%" % self.percent)
+        else:
+            self.width_hint = self.parent.text_width("%d" % self.percent)
         self.parent.schedule(2, self._update)
 
     def draw(self):
@@ -66,7 +71,8 @@ class Volume(caw.widget.Widget):
             fg = self.fgmed
 
         self.parent.draw_text("%d" % self.percent, fg, self.x)
-        self.parent.draw_text("%", self.percent_color)
+        if self.show_percent:
+            self.parent.draw_text("%", fg)
 
     def _set_alsa(self, value):
         alsaaudio.Mixer(self.device).setvolume(value)
@@ -74,15 +80,15 @@ class Volume(caw.widget.Widget):
     def _set_oss(self, value):
         self.mixer.set(self.device_mask, (value,value))
 
-    def button_press(self, button, x):
-        if button == 5:
-            newval =  max(self.current-self.step, self.min)
-            getattr(self, "_set_" + self.driver)(newval)
-            getattr(self, "_update_" + self.driver)()
-            self.parent.redraw()
-        elif button == 4:
-            newval =  min(self.current+self.step, self.max)
-            getattr(self, "_set_" + self.driver)(newval)
-            getattr(self, "_update_" + self.driver)()
-            self.parent.redraw()
+    def button5(self, x):
+        newval =  max(self.current-self.step, self.min)
+        getattr(self, "_set_" + self.driver)(newval)
+        getattr(self, "_update_" + self.driver)()
+        self.parent.redraw()
+
+    def button4(self, x):
+        newval =  min(self.current+self.step, self.max)
+        getattr(self, "_set_" + self.driver)(newval)
+        getattr(self, "_update_" + self.driver)()
+        self.parent.redraw()
 

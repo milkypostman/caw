@@ -56,8 +56,6 @@ for file in glob.glob("caw/*.py"):
 for file in glob.glob("caw/widgets/*.py"):
     py_modules.append(file[:-3])
 
-print py_modules
-
 setup(name             = "CAW!",
       author           = "Donald Ephraim Curtis",
       author_email     = "dcurtis@gmail.com",

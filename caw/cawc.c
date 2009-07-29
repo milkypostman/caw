@@ -58,7 +58,7 @@ _init_atoms(xcb_connection_t *connection)
 
         if (reply) {
             atoms[i] = reply->atom;
-            //free (reply);
+            free (reply);
         }
     }
 
@@ -144,8 +144,7 @@ _update_struts(PyObject *self, PyObject *args)
     xcb_window_t window;
     uint32_t data[12];
     int x, y, w, h;
-
-    //memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
 
     if (!PyArg_ParseTuple(args, "lIiiii", &connection, &window, &x, &y, &w, &h))
         return NULL;
@@ -163,11 +162,9 @@ _update_struts(PyObject *self, PyObject *args)
         data[11] = x+w;
     }
 
-    /*
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STRUT], CARDINAL,
             32, 4, data);
-            */
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
             window, atoms[_NET_WM_STRUT_PARTIAL], CARDINAL,

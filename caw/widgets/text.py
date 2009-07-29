@@ -1,8 +1,8 @@
 import caw.widget
 
 class Text(caw.widget.Widget):
-    def __init__(self, text="undefined", color=None):
-        super(Text, self).__init__()
+    def __init__(self, text="undefined", color=None, **kwargs):
+        super(Text, self).__init__(**kwargs)
         self.text = text
         self.color = color
 
