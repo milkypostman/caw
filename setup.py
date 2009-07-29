@@ -9,7 +9,7 @@ configs = []
 ldirs   = []
 
 # Add any additional compile options here -
-cargs   = ["-Wall"]
+cargs   = ["-Wall", "-g"]
 
 #------------------------------------------------------------------------------
 # The rest of this script should not need to be modified! 

@@ -24,7 +24,7 @@ typedef enum
     _ATOM_COUNT,
 } atoms_t;
 
-char *atom_str[] = {
+static char *atom_str[] = {
     "_NET_WM_WINDOW_TYPE",
     "_NET_WM_WINDOW_TYPE_DOCK",
     "_NET_WM_DESKTOP",
@@ -39,9 +39,9 @@ char *atom_str[] = {
     "_XROOTPMAP_ID",
 };
 
-xcb_atom_t atoms[_ATOM_COUNT];
+static xcb_atom_t atoms[_ATOM_COUNT];
 
-void
+static void
 _init_atoms(xcb_connection_t *connection)
 {
     xcb_intern_atom_cookie_t cookies[_ATOM_COUNT];
@@ -58,7 +58,7 @@ _init_atoms(xcb_connection_t *connection)
 
         if (reply) {
             atoms[i] = reply->atom;
-            free (reply);
+            //free (reply);
         }
     }
 
@@ -74,6 +74,29 @@ static PyObject * _xcb_connect(PyObject *self, PyObject *args)
     connection = xcb_connect(0, 0);
     _init_atoms(connection);
     return Py_BuildValue("l", connection);
+}
+
+static PyObject *
+_xcb_configure_window(PyObject *self, PyObject *args)
+{
+    xcb_connection_t *connection;
+    xcb_window_t win;
+    uint32_t config[4];
+    memset(config, 0, sizeof(config));
+
+    if (!PyArg_ParseTuple(args, "lIIIII", &connection, &win, &config[0], &config[1], &config[2], &config[3]))
+        return NULL;
+
+    printf("%ld %d %d %d %d\n", win, config[0], config[1], config[2], config[3]);
+
+    xcb_configure_window(connection, win,
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+            config);
+
+
+
+    Py_RETURN_NONE;
 }
 
 static PyObject *
@@ -115,24 +138,103 @@ _xcb_screen(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-_xcb_configure_window(PyObject *self, PyObject *args)
+_update_struts(PyObject *self, PyObject *args)
 {
     xcb_connection_t *connection;
-    xcb_window_t win;
-    uint32_t config[7];
-    memset(config, 0, sizeof(config));
+    xcb_window_t window;
+    uint32_t data[12];
+    int x, y, w, h;
 
-    if (!PyArg_ParseTuple(args, "llllll", &connection, &win, &config[0], &config[1], &config[2], &config[3]))
+    //memset(data, 0, sizeof(data));
+
+    if (!PyArg_ParseTuple(args, "lIiiii", &connection, &window, &x, &y, &w, &h))
         return NULL;
 
-    //printf("%d %d %d %d\n", config[0], config[1], config[2], config[3]);
+    if (y == 0)
+    {
+        data[2] = h;
+        data[8] = x;
+        data[9] = x+w;
+    }
+    else
+    {
+        data[3] = h;
+        data[10] = x;
+        data[11] = x+w;
+    }
 
-    xcb_configure_window(connection, win,
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-            config);
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            window, atoms[_NET_WM_STRUT], CARDINAL,
+            32, 4, data);
+
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            window, atoms[_NET_WM_STRUT_PARTIAL], CARDINAL,
+            32, 12, data);
+
+    Py_RETURN_NONE;
+}
 
 
+static PyObject *
+_set_hints(PyObject *self, PyObject *args)
+{
+    xcb_connection_t *connection;
+    xcb_window_t window;
+    int x, y, w, h;
+    xcb_wm_hints_t hints;
+    xcb_size_hints_t normal_hints;
+    xcb_generic_error_t *e;
+
+
+    if (!PyArg_ParseTuple(args, "lIiiii", &connection, &window, &x, &y, &w, &h))
+        return NULL;
+
+    /*
+       this is now done on the python side
+    data[0] = 0xffffffff;
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            window, atoms[_NET_WM_DESKTOP], CARDINAL,
+            32, 1, data);
+
+    data[0] = atoms[_NET_WM_WINDOW_TYPE_DOCK];
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            window, atoms[_NET_WM_WINDOW_TYPE], ATOM,
+            32, 1, data);
+            */
+
+    // send requests
+    xcb_get_property_cookie_t hint_c = xcb_get_wm_hints(connection, window);
+    xcb_get_property_cookie_t normal_hints_c = xcb_get_wm_normal_hints(connection, window);
+
+
+    // set wm hints
+    xcb_get_wm_hints_reply(connection, hint_c, &hints, 0);
+    xcb_wm_hints_set_input(&hints, 0);
+    xcb_wm_hints_set_normal(&hints);
+    xcb_set_wm_hints(connection, window, &hints);
+
+
+    // set the normal hints
+    xcb_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
+
+    printf("w: %d, h: %d\n", w, h);
+    normal_hints.flags = XCB_SIZE_HINT_P_POSITION;
+    xcb_size_hints_set_position(&normal_hints, 0, x, y);
+    xcb_size_hints_set_min_size(&normal_hints, w, h);
+    xcb_size_hints_set_max_size(&normal_hints, w, h);
+
+    xcb_set_wm_normal_hints(connection, window, &normal_hints);
+
+    /*
+    data[0] = atoms[_NET_WM_STATE_SKIP_TASKBAR];
+    data[1] = atoms[_NET_WM_STATE_SKIP_PAGER];
+    data[2] = atoms[_NET_WM_STATE_STICKY];
+    data[3] = atoms[_NET_WM_STATE_ABOVE];
+
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
+            window, atoms[_NET_WM_STATE], ATOM,
+            32, 4, data);
+            */
 
     Py_RETURN_NONE;
 }
@@ -275,110 +377,6 @@ _cairo_show_text(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject *
-_update_struts(PyObject *self, PyObject *args)
-{
-    xcb_connection_t *connection;
-    xcb_window_t window;
-    uint32_t data[12];
-    int x, y, w, h;
-
-    memset(data, 0, sizeof(data));
-
-    if (!PyArg_ParseTuple(args, "lliiii", &connection, &window, &x, &y, &w, &h))
-        return NULL;
-
-    if (y == 0)
-    {
-        data[2] = h;
-        data[8] = x;
-        data[9] = x+w;
-    }
-    else
-    {
-        data[3] = h;
-        data[10] = x;
-        data[11] = x+w;
-    }
-
-    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_STRUT], CARDINAL,
-            32, 4, data);
-
-    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_STRUT_PARTIAL], CARDINAL,
-            32, 12, data);
-
-    Py_RETURN_NONE;
-}
-
-
-static PyObject *
-_set_hints(PyObject *self, PyObject *args)
-{
-    xcb_connection_t *connection;
-    xcb_window_t window;
-    int x, y, w, h;
-
-    if (!PyArg_ParseTuple(args, "lliiii", &connection, &window, &x, &y, &w, &h))
-        return NULL;
-
-    /*
-       this is now done on the python side
-    data[0] = 0xffffffff;
-    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_DESKTOP], CARDINAL,
-            32, 1, data);
-
-    data[0] = atoms[_NET_WM_WINDOW_TYPE_DOCK];
-    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_WINDOW_TYPE], ATOM,
-            32, 1, data);
-            */
-
-    xcb_wm_hints_t hints;
-    xcb_size_hints_t normal_hints;
-
-    // send requests
-    xcb_get_property_cookie_t hint_c = xcb_get_wm_hints(connection, window);
-    //xcb_get_property_cookie_t normal_hints_c = xcb_get_wm_normal_hints(connection, window);
-
-
-    // set wm hints
-    xcb_get_wm_hints_reply(connection, hint_c, &hints, 0);
-    xcb_wm_hints_set_input(&hints, 0);
-    xcb_wm_hints_set_normal(&hints);
-
-    xcb_set_wm_hints(connection, window, &hints);
-
-
-    /* FIXME: something wrong here
-    // set the normal hints
-    xcb_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
-
-    printf("w: %d, h: %d\n", w, h);
-    //normal_hints.flags |= XCB_SIZE_HINT_P_POSITION;
-    xcb_size_hints_set_position(&normal_hints, 0, x, y);
-    xcb_size_hints_set_min_size(&normal_hints, w, h);
-    xcb_size_hints_set_max_size(&normal_hints, w, h);
-
-    xcb_set_wm_normal_hints(connection, window, &normal_hints);
-    */
-
-    /*
-    data[0] = atoms[_NET_WM_STATE_SKIP_TASKBAR];
-    data[1] = atoms[_NET_WM_STATE_SKIP_PAGER];
-    data[2] = atoms[_NET_WM_STATE_STICKY];
-    data[3] = atoms[_NET_WM_STATE_ABOVE];
-
-    xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_STATE], ATOM,
-            32, 4, data);
-            */
-
-    Py_RETURN_NONE;
-}
-
 static PyObject * 
 _cairo_text_width(PyObject *self, PyObject *args)
 {
@@ -417,7 +415,7 @@ _cairo_create(PyObject *self, PyObject *args)
     cairo_t * cairo;
     int width, height;
 
-    if (!PyArg_ParseTuple(args, "lllii", &connection, &window, &visual, &width, &height))
+    if (!PyArg_ParseTuple(args, "lIlii", &connection, &window, &visual, &width, &height))
         return NULL;
 
     surface = cairo_xcb_surface_create(connection,
@@ -459,5 +457,10 @@ static PyMethodDef CAWCMethods[] = {
 
 void initcawc(void) {
 /*----------------------*/    
-    Py_InitModule("cawc", CAWCMethods);
+    PyObject *m;
+    m = Py_InitModule3("cawc", CAWCMethods, "CAW C Module for Python\n\nSeems to cause a segfault");
+
+    if (m == NULL)
+        return;
+
 }

@@ -1,0 +1,54 @@
+#!/usr/bin/python
+import sys
+
+sys.path.append('/home/dcurtis/src/cawapp')
+
+
+import caw.caw
+import os
+import subprocess
+Caw = caw.caw.Caw
+
+_main_environ = "CAW_MAIN"
+
+if __name__ == '__main__':
+    # try to load default config from the various xdg directories
+    global_config_dirs = os.path.expandvars('$XDG_CONFIG_DIRS')
+    if global_config_dirs == '$XDG_CONFIG_DIRS':
+        global_config_dirs = ["/etc/xdg",]
+    else:
+        global_config_dirs = global_config_dirs.split(':')
+
+    for dir in global_config_dirs:
+        default_filename = None
+        default_filename = os.path.join(dir, "caw", "config.py")
+    #    default_config = {}
+        if os.path.isfile(default_filename):
+           break
+
+    if os.path.isfile(default_filename):
+        execfile(default_filename, {}, default_config)
+
+    # try to load the user configuration file
+    home_config_dir = os.path.expandvars('$XDG_CONFIG_HOME')
+    if home_config_dir == '$XDG_CONFIG_HOME':
+        home_config_dir = os.path.expanduser("~/.config")
+    user_filename = os.path.join(home_config_dir, "caw", "config.py")
+
+    user_config = {}
+    if os.path.isfile(user_filename):
+        execfile(user_filename, {}, user_config)
+
+    if not user_config and not default_config:
+        raise Exception("No config file found")
+
+    if user_config:
+        config = user_config
+        config['config_file']= user_filename
+    else:
+        config = default_config
+        config['config_file']= default_filename
+
+
+    caw = Caw(**config)
+    caw.mainloop()
