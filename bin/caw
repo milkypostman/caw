@@ -50,6 +50,8 @@ if __name__ == '__main__':
     else:
         raise Exception("No Configuration File Found")
 
+    print "Loading Config:", filename
+
     # save our values
     # this acts a wrapper so we can restart our server fresh
     while 1:
