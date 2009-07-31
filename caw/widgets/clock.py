@@ -14,7 +14,7 @@ class Clock(caw.widget.Widget):
     def update(self):
         self.text = time.strftime(self.format)
         self.width_hint = self.parent.text_width(self.text)
-        self.parent.update();
+        self.parent.update(self);
         self.parent.schedule(1, self.update)
 
     def draw(self):

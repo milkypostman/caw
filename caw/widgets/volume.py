@@ -51,18 +51,24 @@ class Volume(caw.widget.Widget):
         vol = alsaaudio.Mixer(self.device).getvolume()
         self.current = reduce(operator.add, vol) / len(vol)
         self.percent = round((float(self.current) / self.max) * 100)
+        self._update_width()
 
     def _update_oss(self):
         vol = self.mixer.get(self.device_mask)
         self.current = reduce(operator.add, vol) / len(vol)
         self.percent = round((float(self.current) / self.max) * 100)
+        self._update_width()
 
-    def _update(self):
-        getattr(self, "_update_" + self.driver)()
+    def _update_width(self):
         if self.show_percent:
             self.width_hint = self.parent.text_width("%d%%" % self.percent)
         else:
             self.width_hint = self.parent.text_width("%d" % self.percent)
+
+    def _update(self):
+        getattr(self, "_update_" + self.driver)()
+        self._update_width()
+        self.parent.update(self)
         self.parent.schedule(2, self._update)
 
     def draw(self):
@@ -82,15 +88,24 @@ class Volume(caw.widget.Widget):
     def _set_oss(self, value):
         self.mixer.set(self.device_mask, (value,value))
 
+    def redraw(self):
+        if self.width_hint == self.width:
+            #print "immediate redraw"
+            self.parent.clear(self.x, 0, self.width, self.parent.height)
+            self.draw()
+        else:
+            #print "parent redraw"
+            self.parent.redraw()
+
     def button5(self, x):
         newval =  max(self.current-self.step, self.min)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
-        self.parent.redraw()
+        self.redraw()
 
     def button4(self, x):
         newval =  min(self.current+self.step, self.max)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
-        self.parent.redraw()
+        self.redraw()
 

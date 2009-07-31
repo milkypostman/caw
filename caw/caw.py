@@ -5,6 +5,7 @@ import xcb.xproto as xproto
 import struct
 import array
 import sys
+import widget
 
 # our module needs to be loaded after the xcb module
 import cawc as cawc
@@ -52,7 +53,8 @@ class Caw:
         self._timers = []
         self.events = collections.defaultdict(list)
         self.atoms = collections.defaultdict(list)
-        self._update = False
+        self._dirty = False
+        self._dirty_widgets = []
 
         self._init_window()
         self._init_atoms()
@@ -248,9 +250,20 @@ class Caw:
 
         timeout = 0
         while True:
-            if self._update:
+            if self._dirty:
+                #print "updating all"
                 self.redraw()
-                self._update = False
+                self._dirty = False
+                self._dirty_widgets = []
+                conn.flush()
+            elif self._dirty_widgets:
+                #print "only updating dirty widgets"
+                y = (self.height + self._font_height)/2
+                for dw in self._dirty_widgets:
+                    self.clear(dw.x, 0, dw.width, self.height)
+                    cawc.cairo_move_to(self.cairo_c, dw.x, y)
+                    dw.draw()
+                self._dirty_widgets = []
                 conn.flush()
 
             p = poll.poll(timeout*1000)
@@ -299,8 +312,14 @@ class Caw:
     def clear(self, x, y, w, h):
         self.connection.core.ClearArea(0, self.window, x, y, w, h)
 
-    def update(self, *args):
-        self._update = True
+    def update(self, client=None, *args):
+        if client is not None:
+            if client.width_hint == client.width or client.width_hint < 0:
+                #print "adding to dirty list", client
+                self._dirty_widgets.append(client)
+                return
+
+        self._dirty = True
 
     def redraw(self, *_):
         #print "********** REDRAW **********"
