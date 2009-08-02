@@ -69,7 +69,6 @@ class FIFO(caw.widget.Widget):
         file = os.fdopen(self.fd)
 
         txt = file.read().strip()
-        print 'recieved:', txt
         if txt:
             txt = txt.split('\n')
             self.history.extend(txt)
