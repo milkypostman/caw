@@ -56,6 +56,10 @@ class Caw:
         self._dirty = False
         self._dirty_widgets = []
 
+        # poll object for polling file descriptors
+        self._poll = select.poll()
+        self._fdhandlers = {}
+
         self._init_window()
         self._init_atoms()
         self._init_cairo()
@@ -235,17 +239,44 @@ class Caw:
         for w in self.widgets:
             w.init(self)
 
-    def mainloop(self):
-        self._init_widgets()
+    def registerfd(self, fd, func, eventmask=select.POLLIN):
+        if hasattr(fd, 'fileno'):
+            fd = fd.fileno()
+        self._poll.register(fd, eventmask)
+        self._fdhandlers[fd] = func
 
+    def unregisterfd(self, fd):
+        if hasattr(fd, 'fileno'):
+            fd = fd.fileno()
+        self._poll.unregister(fd)
+        del self._fdhandlers[fd]
+
+    def _process_xevents(self, eventmask):
+        while True:
+            try:
+                event = self.connection.poll_for_event()
+                #print "Event:", type(event)
+                #print "OpCode:", event.type
+                #print "Window:", getattr(event, 'window', None)
+                if event.type == 161:
+                    event = xproto.ClientMessageEvent(event)
+                for func in self.events[type(event)]:
+                    func(event)
+            except xcb.xproto.BadWindow as e:
+                # FIXME: not sure why i have to ignore this
+                # it is a fix for the system tray crashing
+                print "Bad Window:", (e.args[0].bad_value), e.args[0].major_opcode
+            except IOError:
+                break
+
+
+    def mainloop(self):
         conn = self.connection
 
-        poll = select.poll()
-        poll.register(conn.get_file_descriptor(), select.POLLIN)
-
+        self._init_widgets()
+        self.registerfd(conn.get_file_descriptor(), self._process_xevents)
 
         self._update_background()
-        #self.clear(0, 0, self.width, self.height)
         conn.flush()
 
         timeout = 0
@@ -266,29 +297,10 @@ class Caw:
                 self._dirty_widgets = []
                 conn.flush()
 
-            p = poll.poll(timeout*1000)
-            while True:
-                try:
-                    event = conn.poll_for_event()
-                    #print "Event:", type(event)
-                    #print "OpCode:", event.type
-                    #print "Window:", getattr(event, 'window', None)
-                    if event.type == 161:
-                        event = xproto.ClientMessageEvent(event)
-                    for func in self.events[type(event)]:
-                        func(event)
-                except xcb.xproto.BadWindow as e:
-                    # FIXME: not sure why i have to ignore this
-                    # it is a fix for the system tray crashing
-                    print "Bad Window:", (e.args[0].bad_value), e.args[0].major_opcode
-                except IOError:
-                    break
+            readfds = self._poll.poll(timeout*1000)
 
-
-                    #for func in self.events[evt.contents.response_type]:
-                        #func(evt)
-                    #xcb.free(evt)
-                    #evt = xcb.xcb_poll_for_event(self.connection)
+            for (fd, eventmask) in readfds:
+                self._fdhandlers[fd](eventmask)
 
             if len(self._timers) > 0:
                 now = time.time()

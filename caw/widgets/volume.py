@@ -88,24 +88,24 @@ class Volume(caw.widget.Widget):
     def _set_oss(self, value):
         self.mixer.set(self.device_mask, (value,value))
 
-    def redraw(self):
-        if self.width_hint == self.width:
-            #print "immediate redraw"
-            self.parent.clear(self.x, 0, self.width, self.parent.height)
-            self.draw()
-        else:
-            #print "parent redraw"
-            self.parent.redraw()
+    #def redraw(self):
+    #    if self.width_hint == self.width:
+    #        #print "immediate redraw"
+    #        self.parent.clear(self.x, 0, self.width, self.parent.height)
+    #        self.draw()
+    #    else:
+    #        #print "parent redraw"
+    #        self.parent.redraw()
 
     def button5(self, x):
         newval =  max(self.current-self.step, self.min)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
-        self.redraw()
+        self.parent.update(self)
 
     def button4(self, x):
         newval =  min(self.current+self.step, self.max)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
-        self.redraw()
+        self.parent.update(self)
 
