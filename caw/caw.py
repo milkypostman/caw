@@ -44,6 +44,7 @@ class Caw:
 
         self.font_face = kwargs.get('font_face', 'Terminus')
         self.font_size = kwargs.get('font_size', 8)
+        self.font_y_offset = kwargs.get('font_y_offset', 0)
 
         self.widgets = kwargs.get('widgets', [])
         self._mtime = os.path.getmtime(sys.argv[0])
@@ -147,6 +148,8 @@ class Caw:
         cawc.cairo_select_font_face(self.cairo_c, self.font_face)
         cawc.cairo_set_font_size(self.cairo_c, self.font_size)
         self._font_height = cawc.cairo_font_height(self.cairo_c)
+        # this translates to ascent - descent
+        self._font_height = self._font_height[0] - self._font_height[1]
         print "Font Height:", self._font_height
 
     def _init_atoms(self):
@@ -303,7 +306,7 @@ class Caw:
                 conn.flush()
             elif self._dirty_widgets:
                 #print "only updating dirty widgets"
-                y = (self.height + self._font_height)/2
+                y = (self.height + self._font_height)/2 + self.font_y_offset
                 for dw in self._dirty_widgets:
                     self.clear(dw.x, 0, dw.width, self.height)
                     cawc.cairo_move_to(self.cairo_c, dw.x, y)
@@ -367,7 +370,8 @@ class Caw:
             varspace /= varcount
 
         x = self.border_width
-        y =  (self.height + self._font_height)/2
+        y = (self.height + self._font_height)/2 + self.font_y_offset
+        print y
         for w in self.widgets:
             ww = w.width_hint
             if ww < 0:
@@ -413,7 +417,7 @@ class Caw:
         cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
 
         if x is not None:
-            y =  (self.height + self._font_height)/2
+            y =  (self.height + self._font_height)/2 + self.font_y_offset
             cawc.cairo_move_to(self.cairo_c, x, y)
 
         cawc.cairo_show_text(self.cairo_c, text);
