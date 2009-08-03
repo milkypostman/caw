@@ -131,7 +131,11 @@ class Tasklist(caw.widget.Widget):
         clients = [c for c in self.clients.itervalues() if self.alldesktops or c['desktop'] == self.current_desktop]
         availwidth = self.width - (len(clients)-1) * self.spacing
 
-        percli = availwidth / len(clients)
+        percli = availwidth
+        if len(clients) > 0:
+            percli = availwidth / len(clients)
+
+        print availwidth, percli, self.spacing
         dots = self.parent.text_width('...')
         curx = self.x
         for c in clients:
@@ -142,14 +146,14 @@ class Tasklist(caw.widget.Widget):
 
             if self.parent.text_width(c['name']) <= cliavail:
                 self.parent.draw_text(c['name'], color, curx)
-                curx += self.parent.text_width(c['name']) + self.spacing
+                curx += percli + self.spacing
             else:
                 cliavail -= dots
                 trim = -1
                 while self.parent.text_width(c['name'][:trim]) > cliavail:
                     trim -= 1
-
+#
                 self.parent.draw_text(c['name'][:trim] + '...', color, curx)
-                curx += self.parent.text_width(c['name'][:trim] + '...') + self.spacing
+                curx += percli + self.spacing
 
 
