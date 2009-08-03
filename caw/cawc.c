@@ -452,7 +452,7 @@ _cairo_font_height(PyObject *self, PyObject *args)
         return NULL;
 
     cairo_font_extents(cairo, &fe);
-    return Py_BuildValue("d", fe.ascent - fe.descent);
+    return Py_BuildValue("i", (int)(fe.ascent - fe.descent));
 }
 
 static PyObject * 

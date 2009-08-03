@@ -147,6 +147,7 @@ class Caw:
         cawc.cairo_select_font_face(self.cairo_c, self.font_face)
         cawc.cairo_set_font_size(self.cairo_c, self.font_size)
         self._font_height = cawc.cairo_font_height(self.cairo_c)
+        print "Font Height:", self._font_height
 
     def _init_atoms(self):
         a = self.get_atoms([
