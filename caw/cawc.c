@@ -443,6 +443,21 @@ _cairo_text_width(PyObject *self, PyObject *args)
 }
 
 static PyObject * 
+_cairo_text_height(PyObject *self, PyObject *args)
+{
+    cairo_t *cairo;
+    cairo_text_extents_t te;
+    char *text;
+
+    if (!PyArg_ParseTuple(args, "ls", &cairo, &text))
+        return NULL;
+
+    cairo_text_extents(cairo, text, &te);
+    return Py_BuildValue("d", te.height);
+    return Py_BuildValue("d", te.x_advance);
+}
+
+static PyObject * 
 _cairo_font_height(PyObject *self, PyObject *args)
 {
     cairo_t *cairo;
@@ -499,6 +514,7 @@ static PyMethodDef CAWCMethods[] = {
     {"cairo_stroke", _cairo_stroke, METH_VARARGS},
     {"cairo_set_line_width", _cairo_set_line_width, METH_VARARGS},
     {"cairo_text_width", _cairo_text_width, METH_VARARGS},
+    {"cairo_text_height", _cairo_text_height, METH_VARARGS},
     {"cairo_font_height", _cairo_font_height, METH_VARARGS},
     {"cairo_set_font_size", _cairo_set_font_size, METH_VARARGS},
     {"cairo_select_font_face", _cairo_select_font_face, METH_VARARGS},
