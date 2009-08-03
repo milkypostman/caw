@@ -205,6 +205,13 @@ class Caw:
         cawc.update_struts(self.connection_c, self.window,
                 self.x, self.y, self.width, self.height)
 
+    def rgb(self, color):
+        r = (color >> 16) / 255.
+        g = ((color >> 8) & 0xff) / 255.
+        b = (color & 0xff) / 255.
+
+        return (r,g,b)
+
     def _update_background(self, *_):
         #print "updating background"
         conn = self.connection
@@ -217,18 +224,24 @@ class Caw:
                 0,0,
                 self.width, self.height)
 
-        r = (self.bg_color >> 16) / 255.
-        g = ((self.bg_color >> 8) & 0xff) / 255.
-        b = (self.bg_color & 0xff) / 255.
         a = self.shading / 255.
-        cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, a)
+        if isinstance(self.bg_color, tuple) or isinstance(self.bg_color, list):
+            pattern = cawc.cairo_pattern_create_linear(0,0,0,self.height)
+            step = float(self.height) / (len(self.bg_color) - 1)
+            cur = 0
+            for color in self.bg_color:
+                r,g,b = self.rgb(color)
+                cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
+                cur += step
+            cawc.cairo_set_source(self._back_cairo_c, pattern)
+        else:
+            r,g,b = self.rgb(self.bg_color)
+            cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, a)
         cawc.cairo_rectangle(self._back_cairo_c, 0, 0, self.width, self.height);
         cawc.cairo_fill(self._back_cairo_c)
 
         i = 0
-        r = (self.border_color >> 16) / 255.
-        g = ((self.border_color >> 8) & 0xff) / 255.
-        b = (self.border_color & 0xff) / 255.
+        r,g,b = self.rgb(self.border_color)
         cawc.cairo_set_source_rgb(self._back_cairo_c, r, g, b)
         while i < self.border_width:
             cawc.cairo_rectangle(self._back_cairo_c, i, i, self.width-2*i, self.height-2*i);

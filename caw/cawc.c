@@ -182,8 +182,7 @@ _set_hints(PyObject *self, PyObject *args)
     int x, y, w, h;
     xcb_wm_hints_t hints;
     xcb_size_hints_t normal_hints;
-    xcb_generic_error_t *e;
-
+    //xcb_generic_error_t *e;
 
     if (!PyArg_ParseTuple(args, "lIiiii", &connection, &window, &x, &y, &w, &h))
         return NULL;
@@ -252,11 +251,63 @@ _cairo_set_source_rgb(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+_cairo_set_source(PyObject *self, PyObject *args)
+{
+    cairo_t * cairo;
+    cairo_pattern_t * pattern;
+    
+    if (!PyArg_ParseTuple(args, "ll", &cairo, &pattern))
+        return NULL;
+
+    cairo_set_source(cairo, pattern);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_cairo_pattern_create_linear(PyObject *self, PyObject *args)
+{
+    cairo_pattern_t * pattern;
+    double x0,y0,x1,y1;
+
+    if (!PyArg_ParseTuple(args, "dddd", &x0, &y0, &x1, &y1))
+        return NULL;
+
+    pattern = cairo_pattern_create_linear(x0, y0, x1, y1);
+    return Py_BuildValue("l", pattern);
+}
+
+
+static PyObject *
+_cairo_pattern_destroy(PyObject *self, PyObject *args)
+{
+    cairo_pattern_t * pattern;
+
+    if (!PyArg_ParseTuple(args, "l", &pattern))
+        return NULL;
+
+    cairo_pattern_destroy(pattern);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_cairo_pattern_add_color_stop_rgba(PyObject *self, PyObject *args)
+{
+    cairo_pattern_t * pattern;
+    double offset, r, g, b, a;
+
+    if (!PyArg_ParseTuple(args, "lddddd", &pattern, &offset, &r, &g, &b, &a))
+        return NULL;
+
+    cairo_pattern_add_color_stop_rgba(pattern, offset, r, g, b, a);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 _cairo_set_source_rgba(PyObject *self, PyObject *args)
 {
     cairo_t * cairo;
     double r,g,b,a;
-    
+
     if (!PyArg_ParseTuple(args, "ldddd", &cairo, &r, &g, &b, &a))
         return NULL;
 
@@ -436,8 +487,12 @@ static PyMethodDef CAWCMethods[] = {
     {"xcb_configure_window",     _xcb_configure_window,     METH_VARARGS, "Connect"},
     {"xcb_visualtype",     _xcb_visualtype,     METH_VARARGS, "Connect"},
     {"cairo_create", _cairo_create, METH_VARARGS},
+    {"cairo_pattern_create_linear", _cairo_pattern_create_linear, METH_VARARGS},
+    {"cairo_pattern_destroy", _cairo_pattern_destroy, METH_VARARGS},
+    {"cairo_pattern_add_color_stop_rgba", _cairo_pattern_add_color_stop_rgba, METH_VARARGS},
     {"cairo_set_source_rgb", _cairo_set_source_rgb, METH_VARARGS},
     {"cairo_set_source_rgba", _cairo_set_source_rgba, METH_VARARGS},
+    {"cairo_set_source", _cairo_set_source, METH_VARARGS},
     {"cairo_rectangle", _cairo_rectangle, METH_VARARGS},
     {"cairo_fill", _cairo_fill, METH_VARARGS},
     {"cairo_stroke", _cairo_stroke, METH_VARARGS},
