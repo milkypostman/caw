@@ -373,7 +373,6 @@ class Caw:
 
         x = self.border_width
         y = (self.height + self._font_height)/2 + self.font_y_offset
-        print y
         for w in self.widgets:
             ww = w.width_hint
             if ww < 0:
