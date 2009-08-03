@@ -240,6 +240,7 @@ class Caw:
                 cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
                 cur += step
             cawc.cairo_set_source(self._back_cairo_c, pattern)
+            cawc.cairo_pattern_destroy(pattern)
         else:
             r,g,b = self.rgb(self.bg_color)
             cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, a)
