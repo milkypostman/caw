@@ -392,6 +392,7 @@ class Caw:
         while left < right:
             mid = (left + right) / 2
             w = self.widgets[mid]
+            #print w, w.x, w.width
             if x < w.x:
                 right = mid
             elif x >= w.x+w.width:

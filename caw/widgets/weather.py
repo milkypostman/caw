@@ -71,7 +71,7 @@ class Weather(caw.widget.Widget):
 
     def draw(self):
             if self.show_units:
-                self.width = self.parent.draw_text(self.data['temp'] + self.data['units'], self.color)
+                self.parent.draw_text(self.data['temp'] + self.data['units'], self.color)
             else:
-                self.width = self.parent.draw_text(self.data['temp'], self.color)
+                self.parent.draw_text(self.data['temp'], self.color)
 
