@@ -294,6 +294,8 @@ class Caw:
             except IOError:
                 break
 
+            self.connection.flush()
+
 
     def mainloop(self):
         conn = self.connection
@@ -311,7 +313,6 @@ class Caw:
                 self.redraw()
                 self._dirty = False
                 self._dirty_widgets = []
-                conn.flush()
             elif self._dirty_widgets:
                 #print "only updating dirty widgets"
                 y = (self.height + self._font_height)/2 + self.font_y_offset
@@ -320,10 +321,9 @@ class Caw:
                     cawc.cairo_move_to(self.cairo_c, dw.x, y)
                     dw.draw()
                 self._dirty_widgets = []
-                conn.flush()
 
+            conn.flush()
             readfds = self._poll.poll(timeout*1000)
-
             for (fd, eventmask) in readfds:
                 self._fdhandlers[fd](eventmask)
 
@@ -337,11 +337,10 @@ class Caw:
             else:
                 timeout = -1
 
+
             #if self._mtime is not None and self._mtime < os.path.getmtime(self.config_file):
             if os.path.getmtime(sys.argv[0]) > self._mtime:
                 sys.exit(5)
-
-            conn.flush()
 
     def schedule(self, timeout, func):
         heapq.heappush(self._timers, (timeout + int(time.time()), func))
