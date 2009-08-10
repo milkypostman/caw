@@ -45,11 +45,11 @@ class FIFO(caw.widget.Widget):
             self.colors.append(color)
         self.colors.append(start_color)
 
-        self.buttons[1] = self.buttons.get(1, self.clear)
-        self.buttons[2] = self.buttons.get(2, self.clear)
-        self.buttons[3] = self.buttons.get(3, self.clear)
-        self.buttons[4] = self.buttons.get(4, self.button4)
-        self.buttons[5] = self.buttons.get(5, self.button5)
+        #self.buttons[1] = self.buttons.get(1, self.clear)
+        #self.buttons[2] = self.buttons.get(2, self.clear)
+        #self.buttons[3] = self.buttons.get(3, self.clear)
+        #self.buttons[4] = self.buttons.get(4, self.button4)
+        #self.buttons[5] = self.buttons.get(5, self.button5)
 
     def init(self, parent):
         self.parent = parent
@@ -110,6 +110,8 @@ class FIFO(caw.widget.Widget):
         if self.history:
             self.text = self.history[self.historyidx]
         self.text_width = self.parent.text_width(self.text)
+        if not (self.width_hint < 0):
+            self.width_hint = self.text_width
 
     def button4(self, _):
         if len(self.text):
@@ -128,5 +130,9 @@ class FIFO(caw.widget.Widget):
         if self.width_hint >= 0:
             self.width_hint = 0
         self.parent.update()
+
+    button1 = clear
+    button2 = clear
+    button3 = clear
 
 

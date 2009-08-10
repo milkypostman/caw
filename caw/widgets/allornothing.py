@@ -52,7 +52,7 @@ class AllOrNothing(caw.widget.Widget):
     parent = property(_get_parent, _set_parent)
 
     def button_press(self, button, x):
-        print "ALL OR NOTHING BUTTON"
+        #print "ALL OR NOTHING BUTTON"
         left = 0
         right = len(self.widgets)
         while left < right:
