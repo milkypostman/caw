@@ -2,10 +2,10 @@ import caw.widget
 import time
 
 class Clock(caw.widget.Widget):
-    def __init__(self, format="%Y.%m.%d %H:%M:%S", color=None, **kwargs):
+    def __init__(self, format="%Y.%m.%d %H:%M:%S", fg_color=None, **kwargs):
         super(Clock, self).__init__(**kwargs)
         self.format = format
-        self.color = color
+        self.fg_color = fg_color
 
     def init(self, parent):
         super(Clock, self).init(parent)
@@ -18,5 +18,5 @@ class Clock(caw.widget.Widget):
         self.parent.schedule(1, self.update)
 
     def draw(self):
-        self.parent.draw_text(self.text, color=self.color)
+        self.parent.draw_text(self.text, fg_color=self.fg_color)
 

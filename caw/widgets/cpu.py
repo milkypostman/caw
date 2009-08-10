@@ -94,16 +94,16 @@ class CPU(caw.widget.Widget):
 
     def draw(self):
         val = self._data['usage']
-        color = self.fg_color
+        fg_color = self.fg_color
         if val > self.high_threshold:
-            color = self.high_color
+            fg_color = self.high_color
         elif val > self.med_threshold:
-            color = self.med_color
+            fg_color = self.med_color
 
         if self.show_percent:
-            self.parent.draw_text("%d%%" % self._data['usage'], color=color)
+            self.parent.draw_text("%d%%" % self._data['usage'], fg_color=fg_color)
         else:
-            self.parent.draw_text("%d" % self._data['usage'], color=color)
+            self.parent.draw_text("%d" % self._data['usage'], fg_color=fg_color)
 
 
 

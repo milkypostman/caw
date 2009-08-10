@@ -218,6 +218,22 @@ class Caw:
 
         return (r,g,b)
 
+    def set_source(self, cairo, color, shading, height):
+        a = shading / 255.
+        if isinstance(color, tuple) or isinstance(color, list):
+            pattern = cawc.cairo_pattern_create_linear(0,0,0,height)
+            step = float(height) / (len(color) - 1)
+            cur = 0
+            for color in self.bg_color:
+                r,g,b = self.rgb(color)
+                cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
+                cur += step
+            cawc.cairo_set_source(cairo, pattern)
+            cawc.cairo_pattern_destroy(pattern)
+        else:
+            r,g,b = self.rgb(color)
+            cawc.cairo_set_source_rgba(cairo, r, g, b, a)
+
     def _update_background(self, *_):
         #print "updating background"
         conn = self.connection
@@ -230,26 +246,15 @@ class Caw:
                 0,0,
                 self.width, self.height)
 
-        a = self.shading / 255.
-        if isinstance(self.bg_color, tuple) or isinstance(self.bg_color, list):
-            pattern = cawc.cairo_pattern_create_linear(0,0,0,self.height)
-            step = float(self.height) / (len(self.bg_color) - 1)
-            cur = 0
-            for color in self.bg_color:
-                r,g,b = self.rgb(color)
-                cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
-                cur += step
-            cawc.cairo_set_source(self._back_cairo_c, pattern)
-            cawc.cairo_pattern_destroy(pattern)
-        else:
-            r,g,b = self.rgb(self.bg_color)
-            cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, a)
+        self.set_source(self._back_cairo_c, self.bg_color, self.shading, self.height)
+        cawc.cairo_set_line_width(self._back_cairo_c, 4)
         cawc.cairo_rectangle(self._back_cairo_c, 0, 0, self.width, self.height);
         cawc.cairo_fill(self._back_cairo_c)
 
         i = 0
         r,g,b = self.rgb(self.border_color)
-        cawc.cairo_set_source_rgb(self._back_cairo_c, r, g, b)
+        cawc.cairo_set_line_width(self._back_cairo_c, 2.0)
+        cawc.cairo_set_source_rgba(self._back_cairo_c, 1.0, 1.0, 1.0, 1.0)
         while i < self.border_width:
             cawc.cairo_rectangle(self._back_cairo_c, i, i, self.width-2*i, self.height-2*i);
             cawc.cairo_stroke(self._back_cairo_c)
@@ -409,13 +414,11 @@ class Caw:
             #print "Found functions"
             func(e)
 
-    def draw_text(self, text, color=None, x=None):
-        if color is None:
-            color = self.fg_color
+    def draw_text(self, text, fg_color=None, x=None):
+        if fg_color is None:
+            fg_color = self.fg_color
 
-        r = (float(color >> 16)/0xff)
-        g = (float(color >> 8 & 0xff)/0xff)
-        b = (float(color & 0xff)/0xff)
+        r,g,b = self.rgb(fg_color)
 
         cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
 
@@ -427,3 +430,25 @@ class Caw:
 
     def text_width(self, text):
         return cawc.cairo_text_width(self.cairo_c, text)
+
+    def draw_rectangle(self, x, y, w, h, color=None, shading=None, line_width=1):
+        if color is not None:
+            if shading is None:
+                shading = self.shading
+            self.set_source(self.cairo_c, color, shading, h)
+
+
+        cawc.cairo_set_line_width(self.cairo_c, line_width)
+        cawc.cairo_rectangle(self.cairo_c, x, y, w, h)
+        cawc.cairo_stroke(self.cairo_c)
+
+    def draw_rectangle_filled(self, x, y, w, h, color=None, shading=None):
+        if color is not None:
+            if shading is None:
+                shading = self.shading
+            self.set_source(self.cairo_c, color, shading, h)
+
+
+        cawc.cairo_set_line_width(self.cairo_c, 1)
+        cawc.cairo_rectangle(self.cairo_c, x, y, w, h);
+        cawc.cairo_fill(self.cairo_c)

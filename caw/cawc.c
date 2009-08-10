@@ -376,6 +376,19 @@ _cairo_select_font_face(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+_cairo_set_line_width(PyObject *self, PyObject *args)
+{
+    cairo_t * cairo;
+    double width;
+
+    if (!PyArg_ParseTuple(args, "ld", &cairo, &width))
+        return NULL;
+
+    cairo_set_line_width(cairo, width);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 _cairo_set_font_size(PyObject *self, PyObject *args)
 {
     cairo_t * cairo;
@@ -385,19 +398,6 @@ _cairo_set_font_size(PyObject *self, PyObject *args)
         return NULL;
 
     cairo_set_font_size(cairo, width);
-    Py_RETURN_NONE;
-}
-
-static PyObject *
-_cairo_set_line_width(PyObject *self, PyObject *args)
-{
-    cairo_t * cairo;
-    double width;
-    
-    if (!PyArg_ParseTuple(args, "ld", &cairo, &width))
-        return NULL;
-
-    cairo_set_line_width(cairo, width);
     Py_RETURN_NONE;
 }
 
@@ -491,6 +491,7 @@ _cairo_create(PyObject *self, PyObject *args)
             height);
 
     cairo = cairo_create(surface);
+    cairo_set_antialias(cairo, CAIRO_ANTIALIAS_NONE);
     cairo_surface_destroy(surface);
 
     return Py_BuildValue("l", cairo);
@@ -506,6 +507,7 @@ static PyMethodDef CAWCMethods[] = {
     {"cairo_pattern_create_linear", _cairo_pattern_create_linear, METH_VARARGS},
     {"cairo_pattern_destroy", _cairo_pattern_destroy, METH_VARARGS},
     {"cairo_pattern_add_color_stop_rgba", _cairo_pattern_add_color_stop_rgba, METH_VARARGS},
+    {"cairo_set_line_width", _cairo_set_line_width, METH_VARARGS},
     {"cairo_set_source_rgb", _cairo_set_source_rgb, METH_VARARGS},
     {"cairo_set_source_rgba", _cairo_set_source_rgba, METH_VARARGS},
     {"cairo_set_source", _cairo_set_source, METH_VARARGS},

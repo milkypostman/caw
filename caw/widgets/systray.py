@@ -19,7 +19,7 @@ class Systray(caw.widget.Widget):
             elif self.parent.height >= 16:
                 self.icon_size = 16
             else:
-                self.icon_size = self.parent.height
+                self.icon_size = self.parent.height - 2*self.parent.border_width
 
         self.tasks = {}
 
@@ -61,6 +61,8 @@ class Systray(caw.widget.Widget):
 
         e = conn.core.SetSelectionOwnerChecked(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
         e = conn.core.SendEventChecked(0, scr.root, 0xffffff, event)
+        # FIXME: CONFIRM THIS WORKS
+        #e = conn.core.ChangeProperty(xproto.PropMode.Replace, scr.root, self._NET_SYSTEM_TRAY_S0, self.MANAGER, 32, 1, struct.pack("I",self.window))
 
     def _set_width_hint(self):
         width_hint=self.icon_size*len(self.tasks)+ self.spacing * (len(self.tasks)-1)
@@ -85,6 +87,7 @@ class Systray(caw.widget.Widget):
 
                 #conn.core.ChangeProperty(xproto.PropMode.Replace, task, self.WM_STATE, self.WM_STATE, 32, 2, struct.pack('II', 0, 0))
 
+                #print task
                 conn.core.ReparentWindow(task, self.parent.window, 0, 0)
                 conn.core.ChangeWindowAttributes(task, xproto.CW.EventMask, [xproto.EventMask.Exposure|xproto.EventMask.StructureNotify])
                 conn.flush()

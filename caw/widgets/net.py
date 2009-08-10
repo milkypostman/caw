@@ -98,13 +98,13 @@ class Net(caw.widget.Widget):
 
     def draw(self):
         val = self._data[self.stat]
-        color = self.fg_color
+        fg_color = self.fg_color
         if val > self.high_threshold:
-            color = self.high_color
+            fg_color = self.high_color
         elif val > self.med_threshold:
-            color = self.med_color
+            fg_color = self.med_color
 
-        self.parent.draw_text("%d" % self._data[self.stat], color=color)
+        self.parent.draw_text("%d" % self._data[self.stat], fg_color=fg_color)
 
 
 
