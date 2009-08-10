@@ -294,7 +294,7 @@ class Caw:
             except IOError:
                 break
 
-            self.connection.flush()
+            #self.connection.flush()
 
 
     def mainloop(self):
