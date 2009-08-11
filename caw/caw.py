@@ -43,6 +43,7 @@ class Caw:
         self.shading = kwargs.get('shading', 100)
 
         self.font_face = kwargs.get('font_face', 'Terminus')
+        self.font_bold = kwargs.get('font_bold', False)
         self.font_size = kwargs.get('font_size', 8)
         self.font_y_offset = kwargs.get('font_y_offset', 0)
 
@@ -145,7 +146,7 @@ class Caw:
                 self.width,
                 self.height)
 
-        cawc.cairo_select_font_face(self.cairo_c, self.font_face)
+        cawc.cairo_select_font_face(self.cairo_c, self.font_face, self.font_bold)
         cawc.cairo_set_font_size(self.cairo_c, self.font_size)
         #self._text_height = cawc.cairo_text_height(self.cairo_c, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890')
         #print "Text Height:", self._text_height
