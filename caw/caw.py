@@ -29,14 +29,25 @@ class Caw:
         self.screen = self.connection.get_setup().roots[0]
 
         self.border_width = kwargs.get('border_width', 2)
+        self.xoffset = kwargs.get('xoffset', 0)
+        if 0 < self.xoffset < 1:
+            self.xoffset = int(self.screen.width_in_pixels * self.xoffset)
+        self.yoffset = kwargs.get('yoffset', 0)
+        self.x = self.xoffset
         self.height = kwargs.get('height', 10) + 2*self.border_width
         self.width = kwargs.get('width', self.screen.width_in_pixels)
-        self.x = 0
-        if kwargs.get('edge', 1):
-            self.y = self.screen.height_in_pixels - self.height
-        else:
-            self.y = 0
+        if self.width < 0:
+            self.width += self.screen.width_in_pixels
+        elif self.width < 1:
+            self.width = int(self.screen.width_in_pixels * self.width)
 
+        self.edge = kwargs.get('edge', 1)
+        if self.edge:
+            self.y = self.yoffset + self.screen.height_in_pixels - self.height
+        else:
+            self.y = self.yoffset
+
+        self.ontop = kwargs.get('ontop', True)
         self.fg_color = kwargs.get('fg_color', 0x000000)
         self.bg_color = kwargs.get('bg_color', 0xd6d6d6)
         self.border_color = kwargs.get('border_color', 0x606060)
@@ -171,12 +182,14 @@ class Caw:
         a = self.get_atoms([
                 "_NET_WM_WINDOW_TYPE", 
                 "_NET_WM_WINDOW_TYPE_DOCK", 
+                "_NET_WM_WINDOW_TYPE_DESKTOP", 
                 "_NET_WM_DESKTOP",
                 "_NET_WM_STATE",
                 "_NET_WM_STATE_SKIP_PAGER",
                 "_NET_WM_STATE_SKIP_TASKBAR",
                 "_NET_WM_STATE_STICKY",
                 "_NET_WM_STATE_ABOVE",
+                "_NET_WM_STATE_BELOW",
                 "_NET_WM_STRUT",
                 "_NET_WM_STRUT_PARTIAL",
                 "_WIN_STATE",
@@ -211,18 +224,23 @@ class Caw:
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._WIN_STATE, xcb.XA_CARDINAL, 32, 1, struct.pack("I",1))
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
 
         conn.core.ChangeWindowAttributes(scr.root,
                 xproto.CW.EventMask, 
                 [xproto.EventMask.PropertyChange|xproto.EventMask.StructureNotify])
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
+        if self.ontop:
+            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
+        else:
+            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_BELOW))
+            #conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DESKTOP))
 
 
     def _update_struts(self):
-        cawc.update_struts(self.connection_c, self.window,
-                self.x, self.y, self.width, self.height)
+        if self.y == 0 or self.y == self.screen.height_in_pixels == self.height:
+            print "updateing struts"
+            cawc.update_struts(self.connection_c, self.window, self.x, self.y, self.width, self.height,  self.edge)
 
     def rgb(self, color):
         r = (color >> 16) / 255.

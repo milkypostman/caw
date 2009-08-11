@@ -145,19 +145,19 @@ _update_struts(PyObject *self, PyObject *args)
     xcb_connection_t *connection;
     xcb_window_t window;
     uint32_t data[12];
-    int x, y, w, h;
+    int x, y, w, h, edge;
     memset(data, 0, sizeof(data));
 
-    if (!PyArg_ParseTuple(args, "lIiiii", &connection, &window, &x, &y, &w, &h))
+    if (!PyArg_ParseTuple(args, "lIiiiii", &connection, &window, &x, &y, &w, &h, &edge))
         return NULL;
 
-    if (y == 0)
+    if (edge == 0)
     {
         data[2] = h;
         data[8] = x;
         data[9] = x+w;
     }
-    else
+    else if (edge == 1)
     {
         data[3] = h;
         data[10] = x;
