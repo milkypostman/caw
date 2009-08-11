@@ -255,19 +255,20 @@ class Tasklist(caw.widget.Widget):
             width = self.parent.text_width(c['name'])
 
             x = curx + self.padding
-            if width <= cliavail:
-                if self.align==0:
-                    x = curx + (percli - width) / 2
-                if self.align > 0:
-                    x = curx + percli - width
-                self.parent.draw_text(c['name'], fg_color, x)
-            else:
-                cliavail -= dots
-                trim = -1
-                while self.parent.text_width(c['name'][:trim]) > cliavail:
-                    trim -= 1
-#
-                self.parent.draw_text(c['name'][:trim] + '...', fg_color, x)
+
+            #if width <= cliavail:
+            #    if self.align==0:
+            #        x = curx + (percli - width) / 2
+            #    if self.align > 0:
+            #        x = curx + percli - width
+            self.parent.draw_text(c['name'], fg_color, x, cliavail)
+#            else:
+#                cliavail -= dots
+#                trim = -1
+#                while self.parent.text_width(c['name'][:trim]) > cliavail:
+#                    trim -= 1
+##
+#                self.parent.draw_text(c['name'][:trim] + '...', fg_color, x)
             curx += percli + self.spacing
 
 

@@ -421,7 +421,7 @@ class Caw:
             #print "Found functions"
             func(e)
 
-    def draw_text(self, text, fg_color=None, x=None):
+    def draw_text(self, text, fg_color=None, x=None, width=None, ellipsize=3):
         if fg_color is None:
             fg_color = self.fg_color
 
@@ -434,7 +434,11 @@ class Caw:
             y =  (self.height - self._font_height)/2 + self.font_y_offset
             cawc.cairo_move_to(self.cairo_c, x, y)
 
-        cawc.pango_layout_set_text(self.layout_c, text)
+        if width is not None and width > 0:
+            cawc.pango_layout_set_text(self.layout_c, text, width, ellipsize)
+        else:
+            cawc.pango_layout_set_text(self.layout_c, text)
+
         cawc.pango_cairo_update_show_layout(self.cairo_c, self.layout_c)
         #cawc.cairo_show_text(self.cairo_c, text);
 
