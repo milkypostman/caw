@@ -3,7 +3,7 @@
 # Contributor: Donald Ephraim Curtis <dcurtis@gmail.com>
 
 pkgname=caw
-pkgver=20090729
+pkgver=20090811
 pkgrel=1
 pkgdesc="Lightweight infobar / panel / taskbar written in Python using the XCB library and Cairo"
 arch=('i686' 'x86_64')
