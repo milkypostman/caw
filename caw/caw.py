@@ -21,7 +21,7 @@ import socket
 
 class Caw:
     def __init__(self, **kwargs): 
-        self.connection_c = cawc.xcb_connect()
+        self.connection_c, self.display_c = cawc.xcb_connect()
         self.screen_c = cawc.xcb_screen(self.connection_c)
         self.visualtype_c = cawc.xcb_visualtype(self.screen_c)
 
@@ -65,6 +65,7 @@ class Caw:
         self._init_window()
         self._init_atoms()
         self._init_cairo()
+        self._init_xft()
 
         print "Window:", self.window
         print "X:", self.x
@@ -131,6 +132,9 @@ class Caw:
                 xproto.GC.Foreground | xproto.GC.Background,
                 [scr.white_pixel, scr.black_pixel])
 
+    def _init_xft(self):
+        self.xft_draw_c = cawc.xft_draw_create(self.display_c, self.window)
+
     def _init_cairo(self):
         self._back_cairo_c = cawc.cairo_create(
                 self.connection_c,
@@ -146,14 +150,19 @@ class Caw:
                 self.width,
                 self.height)
 
-        cawc.cairo_select_font_face(self.cairo_c, self.font_face, self.font_bold)
-        cawc.cairo_set_font_size(self.cairo_c, self.font_size)
+        #cawc.cairo_select_font_face(self.cairo_c, self.font_face, self.font_bold)
+        #cawc.cairo_set_font_size(self.cairo_c, self.font_size)
+        self.xft_font_c = cawc.xft_font_open(self.display_c, "Verdana-8")
+        print self.xft_font_c
         #self._text_height = cawc.cairo_text_height(self.cairo_c, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890')
         #print "Text Height:", self._text_height
-        self._font_height = cawc.cairo_font_height(self.cairo_c)
+        #self._font_height = cawc.cairo_font_height(self.cairo_c)
         # this translates to ascent - descent
-        self._font_height = self._font_height[0] - self._font_height[1]
-        print "Font Height:", self._font_height
+        #self._font_height = self._font_height[0] - self._font_height[1]
+        self._font_ascent, self._font_descent = cawc.xft_font_height(self.xft_font_c)
+        #print "Font Height:", self._font_height
+        self._font_height = self._font_ascent - self._font_descent
+        print "Font Height:", self._font_ascent, self._font_descent
 
     def _init_atoms(self):
         a = self.get_atoms([
@@ -212,10 +221,17 @@ class Caw:
         cawc.update_struts(self.connection_c, self.window,
                 self.x, self.y, self.width, self.height)
 
-    def rgb(self, color):
+    def rgbf(self, color):
         r = (color >> 16) / 255.
         g = ((color >> 8) & 0xff) / 255.
         b = (color & 0xff) / 255.
+
+        return (r,g,b)
+
+    def rgb(self, color):
+        r = (color >> 16)
+        g = ((color >> 8) & 0xff)
+        b = (color & 0xff)
 
         return (r,g,b)
 
@@ -226,13 +242,13 @@ class Caw:
             step = float(height) / (len(color) - 1)
             cur = 0
             for color in self.bg_color:
-                r,g,b = self.rgb(color)
+                r,g,b = self.rgbf(color)
                 cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
                 cur += step
             cawc.cairo_set_source(cairo, pattern)
             cawc.cairo_pattern_destroy(pattern)
         else:
-            r,g,b = self.rgb(color)
+            r,g,b = self.rgbf(color)
             cawc.cairo_set_source_rgba(cairo, r, g, b, a)
 
     def _update_background(self, *_):
@@ -253,7 +269,7 @@ class Caw:
         cawc.cairo_fill(self._back_cairo_c)
 
         i = 0
-        r,g,b = self.rgb(self.border_color)
+        r,g,b = self.rgbf(self.border_color)
         cawc.cairo_set_line_width(self._back_cairo_c, 2.0)
         cawc.cairo_set_source_rgba(self._back_cairo_c, 1.0, 1.0, 1.0, 1.0)
         while i < self.border_width:
@@ -316,14 +332,16 @@ class Caw:
                 self._dirty_widgets = []
             elif self._dirty_widgets:
                 #print "only updating dirty widgets"
-                y = (self.height + self._font_height)/2 + self.font_y_offset
+                y = (self.height + self._font_ascent - self._font_descent)/2 + self.font_y_offset
                 for dw in self._dirty_widgets:
                     self.clear(dw.x, 0, dw.width, self.height)
+                    self.x = dw.x
                     cawc.cairo_move_to(self.cairo_c, dw.x, y)
                     dw.draw()
                 self._dirty_widgets = []
 
             conn.flush()
+            cawc.xflush(self.display_c)
             readfds = self._poll.poll(timeout*1000)
             for (fd, eventmask) in readfds:
                 self._fdhandlers[fd](eventmask)
@@ -378,12 +396,13 @@ class Caw:
             varspace /= varcount
 
         x = self.border_width
-        y = (self.height + self._font_height)/2 + self.font_y_offset
+        y = (self.height + self._font_ascent - self._font_descent)/2 + self.font_y_offset
         for w in self.widgets:
+            self.x = w.x = x
+
             ww = w.width_hint
             if ww < 0:
                 ww = varspace
-            w.x = x
             w.width = ww
             cawc.cairo_move_to(self.cairo_c, w.x, y)
             w.draw()
@@ -420,16 +439,23 @@ class Caw:
 
         r,g,b = self.rgb(fg_color)
 
-        cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
+        #cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
 
-        if x is not None:
-            y =  (self.height + self._font_height)/2 + self.font_y_offset
-            cawc.cairo_move_to(self.cairo_c, x, y)
+        y = (self.height + self._font_ascent - self._font_descent)/2
+        if x is None:
+            x = self.x
+        else:
+            self.x = x
 
-        cawc.cairo_show_text(self.cairo_c, text);
+        color = cawc.xft_color_alloc_value(self.display_c, r, g, b)
+
+        cawc.xft_draw_string_utf8(self.xft_draw_c, color, self.xft_font_c, x, y, text);
+        #cawc.xft_color_free(self.display_c, color)
+
+        self.x += self.text_width(text)
 
     def text_width(self, text):
-        return cawc.cairo_text_width(self.cairo_c, text)
+        return cawc.xft_text_width(self.display_c, self.xft_font_c, text)
 
     def draw_rectangle(self, x, y, w, h, color=None, shading=None, line_width=1):
         if color is not None:

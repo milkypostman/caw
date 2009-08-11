@@ -1,5 +1,9 @@
 #include <Python.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h>
+#include <X11/Xft/Xft.h>
+
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_atom.h>
@@ -66,14 +70,17 @@ _init_atoms(xcb_connection_t *connection)
 
 static PyObject * _xcb_connect(PyObject *self, PyObject *args)
 {
+    Display *display;
     xcb_connection_t *connection;
     /*
     if (!PyArg_ParseTuple(args, "ls", &panel, &font))
         return NULL;
         */
-    connection = xcb_connect(0, 0);
+    display = XOpenDisplay(NULL);
+    connection = XGetXCBConnection(display);
+    XSetEventQueueOwner(display, XCBOwnsEventQueue);
     _init_atoms(connection);
-    return Py_BuildValue("l", connection);
+    return Py_BuildValue("ll", connection, display);
 }
 
 static PyObject *
@@ -234,6 +241,159 @@ _set_hints(PyObject *self, PyObject *args)
             32, 4, data);
             */
 
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_xft_font_open(PyObject *self, PyObject *args)
+{
+    Display *dsp;
+    char *font;
+    XftFont *xf;
+
+    if (!PyArg_ParseTuple(args, "ls", &dsp, &font))
+        return NULL;
+
+    int scr = DefaultScreen(dsp);
+
+    if (font[0] == '-')
+        xf = XftFontOpenXlfd(dsp, scr, font);
+    else
+        xf = XftFontOpenName(dsp, scr, font);
+
+    return Py_BuildValue("l", xf);
+}
+
+static PyObject *
+_xft_draw_create(PyObject *self, PyObject *args)
+{
+    Display *dsp;
+    unsigned int win;
+    XGCValues gcv;
+    XftDraw *draw;
+    gcv.graphics_exposures = False;
+
+    if (!PyArg_ParseTuple(args, "lI", &dsp, &win))
+        return NULL;
+
+    int scr = DefaultScreen(dsp);
+    Visual *visual = DefaultVisual(dsp, scr);
+    Colormap cmap = DefaultColormap(dsp, scr);
+
+    draw = XftDrawCreate(dsp, win, visual, cmap);
+
+    return Py_BuildValue("l", draw);
+}
+
+static PyObject * 
+_xft_font_height(PyObject *self, PyObject *args)
+{
+    XftFont *xf;
+
+    if (!PyArg_ParseTuple(args, "l", &xf))
+        return NULL;
+
+    return Py_BuildValue("ii", xf->ascent, xf->descent);
+}
+
+static PyObject * 
+_xft_text_width(PyObject *self, PyObject *args)
+{
+    XGlyphInfo ginfo;
+    XftFont *xf;
+    Display *dsp;
+    unsigned char *text;
+    int len;
+
+    if (!PyArg_ParseTuple(args, "lls#", &dsp, &xf, &text, &len))
+        return NULL;
+
+    XftTextExtentsUtf8(dsp, xf, text, len, &ginfo);
+
+    return Py_BuildValue("i", ginfo.xOff);
+}
+
+static PyObject *
+_xft_color_alloc_value(PyObject *self, PyObject *args)
+{
+    Display *dsp;
+    XftColor *xftcolor = (XftColor *)malloc(sizeof(XftColor));
+    XRenderColor rcolor;
+    unsigned short r, g, b, a=0xff;
+
+    if (!PyArg_ParseTuple(args, "lHHH|H", &dsp, &r, &g, &b, &a))
+        return NULL;
+
+    int scr = DefaultScreen(dsp);
+    Visual *visual = DefaultVisual(dsp, scr);
+    Colormap cmap = DefaultColormap(dsp, scr);
+
+    //XColor xcol;
+    //xcol.pixel = 0xff0000;
+    rcolor.red = r << 8;
+    rcolor.green = g << 8;
+    rcolor.blue = b << 8;
+    rcolor.alpha = a << 8;
+
+    /*
+    XQueryColor(dsp, cmap, &xcol);
+    rcolor.red = xcol.red;
+    rcolor.green = xcol.green;
+    rcolor.blue = xcol.blue;
+    rcolor.alpha = 0xffff;
+    */
+    XftColorAllocValue(dsp, visual, cmap, &rcolor, xftcolor);
+
+    return Py_BuildValue("l", xftcolor);
+}
+
+static PyObject *
+_xft_color_free(PyObject *self, PyObject *args)
+{
+    Display *dsp;
+    XftColor *xftcolor;
+
+    if (!PyArg_ParseTuple(args, "ll", &dsp, &xftcolor))
+        return NULL;
+
+    int scr = DefaultScreen(dsp);
+    Visual *visual = DefaultVisual(dsp, scr);
+    Colormap cmap = DefaultColormap(dsp, scr);
+
+    // WARN: this may cause a mem leak...
+    XftColorFree(dsp, visual, cmap, xftcolor);
+    free(xftcolor);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_xft_draw_string_utf8(PyObject *self, PyObject *args)
+{
+
+    XftDraw *draw;
+    XftColor *xftcolor;
+    XftFont *xftfont;
+    int x, y;
+    unsigned char *text;
+    int len;
+
+    if (!PyArg_ParseTuple(args, "llliis#", &draw, &xftcolor, &xftfont, &x, &y,&text, &len))
+        return NULL;
+
+    XftDrawStringUtf8(draw, xftcolor, xftfont, x, y, text, len);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_xflush(PyObject *self, PyObject *args)
+{
+    Display *dsp;
+    if (!PyArg_ParseTuple(args, "l", &dsp))
+        return NULL;
+
+    XFlush(dsp);
     Py_RETURN_NONE;
 }
 
@@ -524,6 +684,15 @@ static PyMethodDef CAWCMethods[] = {
     {"cairo_show_text", _cairo_show_text, METH_VARARGS},
     {"set_hints", _set_hints, METH_VARARGS},
     {"update_struts", _update_struts, METH_VARARGS},
+
+    {"xft_font_open", _xft_font_open, METH_VARARGS},
+    {"xft_draw_create", _xft_draw_create, METH_VARARGS},
+    {"xft_draw_string_utf8", _xft_draw_string_utf8, METH_VARARGS},
+    {"xft_text_width", _xft_text_width, METH_VARARGS},
+    {"xft_font_height", _xft_font_height, METH_VARARGS},
+    {"xft_color_alloc_value", _xft_color_alloc_value, METH_VARARGS},
+    {"xft_color_free", _xft_color_free, METH_VARARGS},
+    {"xflush", _xflush, METH_VARARGS},
     {NULL, NULL, 0, NULL}
 };
 

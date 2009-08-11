@@ -9,6 +9,7 @@ class Text(caw.widget.Widget):
     def init(self, parent):
         super(Text, self).init(parent)
         self.width_hint = self.parent.text_width(self.text)
+        #print self.text, self.width_hint
 
     def draw(self):
         self.parent.draw_text(self.text, self.fg_color, self.x)

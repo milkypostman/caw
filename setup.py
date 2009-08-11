@@ -1,6 +1,7 @@
 import fileinput, os, sys, glob
 from distutils.core import Extension, setup
 from distutils import sysconfig
+import commands
 
 # Check for Python Xlib
 try:
@@ -10,12 +11,18 @@ except:
     print "http://sourceforge.net/projects/python-xlib/"
     sys.exit()
 
+def pkgconfig(*packages, **kw):
+    flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
+    for token in commands.getoutput("pkg-config --libs --cflags %s" % ' '.join(packages)).split():
+        kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+    return kw
 
 # Distutils config
 module = Extension("caw/cawc",
                    sources            = ["caw/cawc.c"],
-                   libraries          = ['xcb','xcb-atom','xcb-icccm','cairo'],
                    extra_compile_args = ['-Wall'],
+                   **pkgconfig('xcb','xcb-atom','xcb-icccm','cairo','freetype2', 'x11', 'x11-xcb', 'xft')
+                   #libraries          = ['xcb','xcb-atom','xcb-icccm','cairo','freetype2', 'x11', 'x11-xcb', 'xft'],
                    )
 
 py_modules = []
