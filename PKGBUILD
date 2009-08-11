@@ -9,8 +9,9 @@ pkgdesc="Lightweight infobar / panel / taskbar written in Python using the XCB l
 arch=('i686' 'x86_64')
 url="http://github.com/decurtis/caw"
 license=('GPL')
-depends=('python>=2.6' 'xcb-util' 'cairo' 'xpyb')
+depends=('python>=2.6' 'xcb-util' 'cairo' 'xpyb', 'pango')
 makedepends=('python')
+optdepends=('python-pyalsaaudio')
 md5sums=('f1f9a2ed80be72ab36e748833618daba')
 
 _gitroot="git://github.com/decurtis/caw.git"
