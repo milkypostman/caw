@@ -41,7 +41,9 @@ class Weather(caw.widget.Widget):
                 rss = ElementTree.parse(urllib.urlopen(url)).getroot()
             except IOError:
                 log.debug("IOError when retrieving url, retrying in 30 seconds.")
-                self.widget.show('N/A')
+                self.data['temp'] = 'n/a'
+                self.data['units'] = ''
+                self.width_hint = self.parent.text_width(self.data['temp'])
                 time.sleep(30)
                 continue
             #forecasts = []
