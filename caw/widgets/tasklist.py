@@ -261,7 +261,7 @@ class Tasklist(caw.widget.Widget):
             #        x = curx + (percli - width) / 2
             #    if self.align > 0:
             #        x = curx + percli - width
-            self.parent.draw_text(c['name'], fg_color, x, cliavail)
+            self.parent.draw_text(c['name'], fg_color, x, cliavail, 1)
 #            else:
 #                cliavail -= dots
 #                trim = -1

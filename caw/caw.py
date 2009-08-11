@@ -46,6 +46,7 @@ class Caw:
         self.font_bold = kwargs.get('font_bold', False)
         self.font_size = kwargs.get('font_size', 8)
         self.font_y_offset = kwargs.get('font_y_offset', 0)
+        self.dpi = kwargs.get('dpi', -1)
 
         self.widgets = kwargs.get('widgets', [])
         self._mtime = os.path.getmtime(sys.argv[0])
@@ -157,6 +158,10 @@ class Caw:
 
     def _init_pango(self):
         self.layout_c = cawc.pango_cairo_create_layout(self.cairo_c)
+
+        if self.dpi > 0:
+            cawc.pango_cairo_layout_set_resolution(self.layout_c, self.dpi)
+
         self.fontdesc_c = cawc.pango_font_description_from_string(self.font_face + ' ' + str(self.font_size))
         cawc.pango_layout_set_font_description(self.layout_c, self.fontdesc_c)
         _, self._font_height = cawc.pango_layout_get_pixel_size(self.layout_c)
@@ -421,7 +426,7 @@ class Caw:
             #print "Found functions"
             func(e)
 
-    def draw_text(self, text, fg_color=None, x=None, width=None, ellipsize=3):
+    def draw_text(self, text, fg_color=None, x=None, width=None, align=0, ellipsize=3):
         if fg_color is None:
             fg_color = self.fg_color
 
@@ -435,7 +440,7 @@ class Caw:
             cawc.cairo_move_to(self.cairo_c, x, y)
 
         if width is not None and width > 0:
-            cawc.pango_layout_set_text(self.layout_c, text, width, ellipsize)
+            cawc.pango_layout_set_text(self.layout_c, text, width, align, ellipsize)
         else:
             cawc.pango_layout_set_text(self.layout_c, text)
 

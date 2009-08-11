@@ -240,6 +240,20 @@ _set_hints(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+_pango_cairo_layout_set_resolution(PyObject *self, PyObject *args)
+{
+    PangoLayout *layout;
+    double res;
+
+    if (!PyArg_ParseTuple(args, "ld", &layout, &res))
+        return NULL;
+
+    pango_cairo_context_set_resolution(pango_layout_get_context(layout), res);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 _pango_font_description_from_string(PyObject *self, PyObject *args)
 {
     char *fontname;
@@ -249,8 +263,6 @@ _pango_font_description_from_string(PyObject *self, PyObject *args)
         return NULL;
 
     desc = pango_font_description_from_string(fontname);
-
-    printf("size: %d\n", pango_font_description_get_size(desc));
 
     return Py_BuildValue("l", desc);
 }
@@ -320,20 +332,22 @@ _pango_layout_set_text(PyObject *self, PyObject *args)
 {
     PangoLayout *layout;
     char *text;
-    int len, width=-1, ellipsize = 3;
+    int len, width=-1, align=0, ellipsize = 0;
 
-    if (!PyArg_ParseTuple(args, "ls#|ii", &layout, &text, &len, &width, &ellipsize))
+    if (!PyArg_ParseTuple(args, "ls#|iii", &layout, &text, &len, &width, &align, &ellipsize))
         return NULL;
 
     if(width > 0)
     {
         pango_layout_set_ellipsize(layout, ellipsize);
         pango_layout_set_width(layout, width * PANGO_SCALE);
+        pango_layout_set_alignment(layout, align);
     }
     else
     {
         pango_layout_set_ellipsize(layout, 0);
         pango_layout_set_width(layout, -1);
+        pango_layout_set_alignment(layout, 0);
     }
 
     pango_layout_set_text(layout, text, len);
@@ -622,6 +636,7 @@ _cairo_create(PyObject *self, PyObject *args)
             height);
 
     cairo = cairo_create(surface);
+    cairo_set_antialias(cairo, CAIRO_ANTIALIAS_NONE);
     cairo_surface_destroy(surface);
 
     return Py_BuildValue("l", cairo);
@@ -656,6 +671,7 @@ static PyMethodDef CAWCMethods[] = {
     {"update_struts", _update_struts, METH_VARARGS},
     {"pango_cairo_create_layout", _pango_cairo_create_layout, METH_VARARGS},
     {"pango_cairo_update_show_layout", _pango_cairo_update_show_layout, METH_VARARGS},
+    {"pango_cairo_layout_set_resolution", _pango_cairo_layout_set_resolution, METH_VARARGS},
     {"pango_font_description_free", _pango_font_description_free, METH_VARARGS},
     {"pango_font_description_from_string", _pango_font_description_from_string, METH_VARARGS},
     {"pango_layout_get_pixel_size", _pango_layout_get_pixel_size, METH_VARARGS},
