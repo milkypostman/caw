@@ -359,7 +359,8 @@ class Caw:
 
             #if self._mtime is not None and self._mtime < os.path.getmtime(self.config_file):
             if os.path.getmtime(sys.argv[0]) > self._mtime:
-                sys.exit(5)
+                #sys.exit(5)
+                pass
 
     def schedule(self, timeout, func):
         heapq.heappush(self._timers, (timeout + int(time.time()), func))
