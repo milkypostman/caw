@@ -157,7 +157,7 @@ class Caw:
 
     def _init_pango(self):
         self.layout_c = cawc.pango_cairo_create_layout(self.cairo_c)
-        self.fontdesc_c = cawc.pango_font_description_from_string("Verdana 8")
+        self.fontdesc_c = cawc.pango_font_description_from_string(self.font_face + ' ' + str(self.font_size))
         cawc.pango_layout_set_font_description(self.layout_c, self.fontdesc_c)
         _, self._font_height = cawc.pango_layout_get_pixel_size(self.layout_c)
         print "Font Height:", self._font_height

@@ -250,6 +250,8 @@ _pango_font_description_from_string(PyObject *self, PyObject *args)
 
     desc = pango_font_description_from_string(fontname);
 
+    printf("size: %d\n", pango_font_description_get_size(desc));
+
     return Py_BuildValue("l", desc);
 }
 
