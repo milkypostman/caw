@@ -277,8 +277,11 @@ _pango_cairo_create_layout(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "l", &cairo))
         return NULL;
 
+
     layout = pango_cairo_create_layout(cairo);
-    pango_cairo_context_set_resolution(pango_layout_get_context(layout), 90);
+
+    printf("Resolution: %f\n", pango_cairo_context_get_resolution(pango_layout_get_context(layout)));
+
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
     return Py_BuildValue("l", layout);
@@ -619,7 +622,7 @@ _cairo_create(PyObject *self, PyObject *args)
             height);
 
     cairo = cairo_create(surface);
-    cairo_set_antialias(cairo, CAIRO_ANTIALIAS_NONE);
+    //cairo_set_antialias(cairo, CAIRO_ANTIALIAS_NONE);
     cairo_surface_destroy(surface);
 
     return Py_BuildValue("l", cairo);
