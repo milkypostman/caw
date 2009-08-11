@@ -622,7 +622,6 @@ _cairo_create(PyObject *self, PyObject *args)
             height);
 
     cairo = cairo_create(surface);
-    //cairo_set_antialias(cairo, CAIRO_ANTIALIAS_NONE);
     cairo_surface_destroy(surface);
 
     return Py_BuildValue("l", cairo);
