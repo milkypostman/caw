@@ -266,10 +266,10 @@ class Caw:
 
         i = 0
         r,g,b = self.rgb(self.border_color)
-        cawc.cairo_set_line_width(self._back_cairo_c, 2.0)
-        cawc.cairo_set_source_rgba(self._back_cairo_c, 1.0, 1.0, 1.0, 1.0)
+        cawc.cairo_set_line_width(self._back_cairo_c, 1.0)
+        cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, 1.0)
         while i < self.border_width:
-            cawc.cairo_rectangle(self._back_cairo_c, i, i, self.width-2*i, self.height-2*i);
+            cawc.cairo_rectangle(self._back_cairo_c, i, i, self.width-2*i-1, self.height-2*i-1);
             cawc.cairo_stroke(self._back_cairo_c)
             i+=1
 
