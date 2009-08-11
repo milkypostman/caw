@@ -36,7 +36,7 @@ for file in glob.glob("caw/widgets/*.py"):
 setup(name             = "CAW!",
       author           = "Donald Ephraim Curtis",
       author_email     = "dcurtis@gmail.com",
-      version          = ".8",
+      version          = ".9",
       license          = "GPL",
       platforms        = "POSIX",
       description      = "Lightweight panel/taskbar for X11 Window Managers",
