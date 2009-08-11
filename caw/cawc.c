@@ -6,6 +6,8 @@
 #include <xcb/xcb_icccm.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <pango/pango.h>
+#include <pango/pangocairo.h>
 
 typedef enum
 {
@@ -234,6 +236,118 @@ _set_hints(PyObject *self, PyObject *args)
             32, 4, data);
             */
 
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_pango_font_description_from_string(PyObject *self, PyObject *args)
+{
+    char *fontname;
+    PangoFontDescription *desc;
+
+    if (!PyArg_ParseTuple(args, "s", &fontname))
+        return NULL;
+
+    desc = pango_font_description_from_string(fontname);
+
+    return Py_BuildValue("l", desc);
+}
+
+static PyObject *
+_pango_font_description_free(PyObject *self, PyObject *args)
+{
+    PangoFontDescription *desc;
+
+    if (!PyArg_ParseTuple(args, "l", &desc))
+        return NULL;
+
+    pango_font_description_free(desc);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_pango_cairo_create_layout(PyObject *self, PyObject *args)
+{
+    cairo_t * cairo;
+    PangoLayout *layout;
+
+    if (!PyArg_ParseTuple(args, "l", &cairo))
+        return NULL;
+
+    layout = pango_cairo_create_layout(cairo);
+    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
+
+    return Py_BuildValue("l", layout);
+}
+
+static PyObject *
+_pango_layout_get_pixel_size(PyObject *self, PyObject *args)
+{
+    PangoLayout *layout;
+    int width, height;
+
+    if (!PyArg_ParseTuple(args, "l", &layout))
+        return NULL;
+
+    pango_layout_get_pixel_size(layout, &width, &height);
+
+    return Py_BuildValue("ii", width, height);
+}
+
+static PyObject *
+_pango_layout_set_font_description(PyObject *self, PyObject *args)
+{
+    PangoFontDescription *desc;
+    PangoLayout *layout;
+
+    if (!PyArg_ParseTuple(args, "ll", &layout, &desc))
+        return NULL;
+
+    pango_layout_set_font_description(layout, desc);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_pango_layout_set_text(PyObject *self, PyObject *args)
+{
+    PangoLayout *layout;
+    char *text;
+    int len;
+
+    if (!PyArg_ParseTuple(args, "ls#", &layout, &text, &len))
+        return NULL;
+
+    pango_layout_set_text(layout, text, len);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_pango_layout_set_width_height(PyObject *self, PyObject *args)
+{
+    PangoLayout *layout;
+    int width, height;
+
+    if (!PyArg_ParseTuple(args, "lii", &layout, &width, &height))
+        return NULL;
+
+    pango_layout_set_width(layout, pango_units_from_double(width));
+    pango_layout_set_height(layout, pango_units_from_double(height));
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+_pango_cairo_update_show_layout(PyObject *self, PyObject *args)
+{
+    cairo_t * cairo;
+    PangoLayout *layout;
+
+    if (!PyArg_ParseTuple(args, "ll", &cairo, &layout))
+        return NULL;
+
+    pango_cairo_update_layout(cairo, layout);
+    pango_cairo_show_layout(cairo, layout);
     Py_RETURN_NONE;
 }
 
@@ -524,6 +638,14 @@ static PyMethodDef CAWCMethods[] = {
     {"cairo_show_text", _cairo_show_text, METH_VARARGS},
     {"set_hints", _set_hints, METH_VARARGS},
     {"update_struts", _update_struts, METH_VARARGS},
+    {"pango_cairo_create_layout", _pango_cairo_create_layout, METH_VARARGS},
+    {"pango_cairo_update_show_layout", _pango_cairo_update_show_layout, METH_VARARGS},
+    {"pango_font_description_free", _pango_font_description_free, METH_VARARGS},
+    {"pango_font_description_from_string", _pango_font_description_from_string, METH_VARARGS},
+    {"pango_layout_get_pixel_size", _pango_layout_get_pixel_size, METH_VARARGS},
+    {"pango_layout_set_font_description", _pango_layout_set_font_description, METH_VARARGS},
+    {"pango_layout_set_text", _pango_layout_set_text, METH_VARARGS},
+    {"pango_layout_set_width_height", _pango_layout_set_width_height, METH_VARARGS},
     {NULL, NULL, 0, NULL}
 };
 

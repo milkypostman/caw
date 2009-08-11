@@ -65,6 +65,7 @@ class Caw:
         self._init_window()
         self._init_atoms()
         self._init_cairo()
+        self._init_pango()
 
         print "Window:", self.window
         print "X:", self.x
@@ -150,9 +151,15 @@ class Caw:
         cawc.cairo_set_font_size(self.cairo_c, self.font_size)
         #self._text_height = cawc.cairo_text_height(self.cairo_c, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890')
         #print "Text Height:", self._text_height
-        self._font_height = cawc.cairo_font_height(self.cairo_c)
+        #self._font_height = cawc.cairo_font_height(self.cairo_c)
         # this translates to ascent - descent
-        self._font_height = self._font_height[0] - self._font_height[1]
+        #self._font_height = self._font_height[0] - self._font_height[1]
+
+    def _init_pango(self):
+        self.layout_c = cawc.pango_cairo_create_layout(self.cairo_c)
+        self.fontdesc_c = cawc.pango_font_description_from_string("Verdana 8")
+        cawc.pango_layout_set_font_description(self.layout_c, self.fontdesc_c)
+        _, self._font_height = cawc.pango_layout_get_pixel_size(self.layout_c)
         print "Font Height:", self._font_height
 
     def _init_atoms(self):
@@ -316,7 +323,7 @@ class Caw:
                 self._dirty_widgets = []
             elif self._dirty_widgets:
                 #print "only updating dirty widgets"
-                y = (self.height + self._font_height)/2 + self.font_y_offset
+                y = (self.height - self._font_height)/2 + self.font_y_offset
                 for dw in self._dirty_widgets:
                     self.clear(dw.x, 0, dw.width, self.height)
                     cawc.cairo_move_to(self.cairo_c, dw.x, y)
@@ -378,7 +385,7 @@ class Caw:
             varspace /= varcount
 
         x = self.border_width
-        y = (self.height + self._font_height)/2 + self.font_y_offset
+        y = (self.height - self._font_height)/2 + self.font_y_offset
         for w in self.widgets:
             ww = w.width_hint
             if ww < 0:
@@ -423,13 +430,19 @@ class Caw:
         cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
 
         if x is not None:
-            y =  (self.height + self._font_height)/2 + self.font_y_offset
+            #y =  (self.height + self._font_height)/2 + self.font_y_offset
+            y =  (self.height - self._font_height)/2 + self.font_y_offset
             cawc.cairo_move_to(self.cairo_c, x, y)
 
-        cawc.cairo_show_text(self.cairo_c, text);
+        cawc.pango_layout_set_text(self.layout_c, text)
+        cawc.pango_cairo_update_show_layout(self.cairo_c, self.layout_c)
+        #cawc.cairo_show_text(self.cairo_c, text);
 
     def text_width(self, text):
-        return cawc.cairo_text_width(self.cairo_c, text)
+        cawc.pango_layout_set_text(self.layout_c, text)
+        width, _ = cawc.pango_layout_get_pixel_size(self.layout_c)
+        return width
+        #return cawc.cairo_text_width(self.cairo_c, text)
 
     def draw_rectangle(self, x, y, w, h, color=None, shading=None, line_width=1):
         if color is not None:
