@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CAW!'s documentation!
+Documentation for CAW!
 ================================
 
 Main Class:
@@ -14,7 +14,7 @@ Main Class:
    reference/caw
 
 
-Widget Classes:
+Widget Modules:
 
 .. toctree::
    :maxdepth: 1

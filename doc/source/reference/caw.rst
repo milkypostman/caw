@@ -1,8 +1,10 @@
-CAW!
-******
+.. _caw:
 
-.. .. automodule:: caw
+caw.Caw
+**********
 
+.. automodule:: caw
 .. autoclass:: Caw
+   :members:
 
 
