@@ -47,7 +47,7 @@ class Caw:
         else:
             self.y = self.yoffset
 
-        self.ontop = kwargs.get('ontop', True)
+        self.above = kwargs.get('above', True)
         self.fg_color = kwargs.get('fg_color', 0x000000)
         self.bg_color = kwargs.get('bg_color', 0xd6d6d6)
         self.border_color = kwargs.get('border_color', 0x606060)
@@ -230,7 +230,7 @@ class Caw:
                 [xproto.EventMask.PropertyChange|xproto.EventMask.StructureNotify])
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
-        if self.ontop:
+        if self.above:
             conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
         else:
             conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_BELOW))
@@ -238,7 +238,7 @@ class Caw:
 
 
     def _update_struts(self):
-        if self.y == 0 or self.y == self.screen.height_in_pixels - self.height:
+        if self.above and (self.y == 0 or self.y == self.screen.height_in_pixels - self.height):
             print "updateing struts"
             cawc.update_struts(self.connection_c, self.window, self.x, self.y, self.width, self.height,  self.edge)
 
