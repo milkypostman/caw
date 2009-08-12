@@ -1,13 +1,21 @@
+"""Wifi Widget"""
 import caw.widget
 import re
 import os
 
 class Wifi(caw.widget.Widget):
+    """Wifi Widget"""
     def __init__(self, adapter="ath0", fg_color=None, **kwargs):
+        """Initializes the Wifi widget
+
+        Parameters
+        ----------
+
+        adapter : the network adapater to watch
+        """
         super(Wifi, self).__init__(**kwargs)
         self.adapter = adapter
 
-        self.symbols = {'charging': '^', 'discharging': '_', 'charged': '='}
         self.fg_color = fg_color
         self.width_hint = 0
 

@@ -19,8 +19,53 @@ import itertools
 import heapq
 import socket
 
+
 class Caw:
-    def __init__(self, **kwargs): 
+    """CAW! is a Python taskbar, systemtray, infobar allowing mouse interactions and extensibility through Python."""
+
+    def __init__(self, **kwargs):
+        """ Initialize the main Caw class.
+
+
+        Parameters
+        ----------
+
+        xoffset : offset in the x direction.  Values < 1 are interpreted as fractions of \
+                the screen width.  (ie. .5 would mean to offset by half of the screen)
+
+        yoffset : pixel offset in the y direction.
+
+        height : pixel height of the panel
+
+        width : width of the panel.  Values < 1 are intpreted as fractions of the screen width. \
+                (ie. .5 means to reduce the width to 50% of the total screen width).
+
+        edge : [0|1] edge to position the panel on. 0 = top edge, 1 = bottom edge.
+
+        fg_color : integer value for the default foreground color of the panel.  \
+                Can be written in hex (eg. 0xff0000 being red)
+
+        bg_color : integer value for the default background color of the panel.
+
+        border_color : integer value for the border color of the panel.
+
+        border_width : width of the panel border
+
+        shading : [0-255] level of shading to apply to the panel.  \
+                0 is a psudo-transparent, 255 is opaque.
+
+        above : *bool* representing if the panel should be above all other \
+                windows.  This option is ignored if the panel is not touching \
+                an edge.
+
+        font_face : font face to use.
+
+        font_size : *int* given the point size of the font
+
+        dpi : manually set the font dpi setting for cairo/pango
+
+        """
+
         self.connection_c = cawc.xcb_connect()
         self.screen_c = cawc.xcb_screen(self.connection_c)
         self.visualtype_c = cawc.xcb_visualtype(self.screen_c)
@@ -234,7 +279,6 @@ class Caw:
             conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
         else:
             conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_BELOW))
-            #conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DESKTOP))
 
 
     def _update_struts(self):
