@@ -238,7 +238,7 @@ class Caw:
 
 
     def _update_struts(self):
-        if self.y == 0 or self.y == self.screen.height_in_pixels == self.height:
+        if self.y == 0 or self.y == self.screen.height_in_pixels - self.height:
             print "updateing struts"
             cawc.update_struts(self.connection_c, self.window, self.x, self.y, self.width, self.height,  self.edge)
 
