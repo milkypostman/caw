@@ -5,7 +5,55 @@ import xcb.xproto as xproto
 import time
 
 class Tasklist(caw.widget.Widget):
+    """Basic tasklist.
+
+    - Clicking a task will make that current and rasi it to the top.
+    - Clicking the current task will minimized that task.
+    - Clicking a minimized task will restore that window.
+
+    Properties
+    ------------
+
+    alldesktops : show windows from all desktops (clicking currently \
+    doesn't currently work due to the need to switch windows (TODO).
+
+    align : alignment of the task windows ['left'|'right'|'center']
+
+    padding : padding around the client text and the border of the task button. (default 5)
+
+    margin : distance between the edges of the tasklist widget and the tasks.
+
+    spacing : distance between tasks.
+
+    fg_color : foreground color of normal tasks (ie. tasks that are not mimized or currently selected).
+
+    fg_current : foreground color of the currently selected task.
+
+    fg_minimized : foreground color of minimized tasks.
+
+    bg_color : background color of normal tasks (ie. tasks that are not mimized or currently selected).
+
+    bg_current : background color of the currently selected task.
+
+    bg_minimized : background color of minimized tasks.
+
+    alpha_color : alpha value for the background of normal tasks [ 0 = fully transparent, 255 = opaque ]
+
+    alpha_current : alpha value for the background of the current task.
+
+    alpha_minimized : alpha value for the background of minimized tasks.
+
+    border_color : border color of normal tasks (ie. tasks that are not mimized or currently selected).
+
+    border_current : border color of the currently selected task.
+
+    border_minimized : border color of minimized tasks.
+
+    border_width : width of the border (default 1)
+    """
+
     def __init__(self, alldesktops=False, align='left', padding=5, fg_color=None, fg_current=None, fg_minimized=None, bg_color=None, bg_current=None, bg_minimized=None, border_color=None, border_current=None, border_minimized=None, border_width=1, margin=0, alpha=None, alpha_current=None, alpha_minimized=None, spacing=5, **kwargs):
+
         super(Tasklist, self).__init__(**kwargs)
         self.alldesktops = alldesktops
         self.clients = {}
@@ -36,6 +84,7 @@ class Tasklist(caw.widget.Widget):
         self.width_hint = -1
         self.align=dict(left=-1, center=0, right=1).get(align, -1)
 
+
     def init(self, parent):
         super(Tasklist, self).init(parent)
         a = self.parent.get_atoms([
@@ -43,6 +92,8 @@ class Tasklist(caw.widget.Widget):
             "_NET_CURRENT_DESKTOP",
             "_NET_CURRENT_DESKTOP",
             "_NET_WM_NAME",
+            "UTF8_STRING",
+            "COMPOUND_TEXT",
             "WM_CHANGE_STATE",
             "_NET_WM_STATE",
             "_NET_WM_STATE_HIDDEN",
@@ -57,6 +108,7 @@ class Tasklist(caw.widget.Widget):
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_desktop)
         self.parent.atoms[self._NET_CLIENT_LIST].append(self._update_clients)
         self.parent.atoms[xcb.XA_WM_NAME].append(self._update_name)
+        self.parent.atoms[self._NET_WM_NAME].append(self._update_name)
         self.parent.events[xproto.FocusInEvent].append(self._update_focus)
         self.parent.events[xproto.DestroyNotifyEvent].append(self._destroynotify)
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_current_desktop)
@@ -114,8 +166,12 @@ class Tasklist(caw.widget.Widget):
         conn = self.parent.connection
         id = evt.window
         if id in self.clients:
-            r = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, xcb.XA_STRING, 0, 2**16).reply()
-            self.clients[id]['name'] = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00")
+            r = conn.core.GetProperty(0, id, self._NET_WM_NAME, 0, 0, 2**16).reply()
+            if not r.value_len:
+                r = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, 0, 0, 2**16).reply()
+            val = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0]
+            #print "updated name value:", val, r.value_len, r.value.buf()
+            self.clients[id]['name'] = val.strip("\x00")
         self.parent.update()
 
     def _update_desktop(self, evt):
@@ -146,15 +202,16 @@ class Tasklist(caw.widget.Widget):
         classes = {}
         desktops = {}
         names = {}
+        names_alt = {}
         states = {}
 
         for id in clients:
             if id not in self.clients and id != self.parent.window:
                 classes[id] = conn.core.GetProperty(0, id, xcb.XA_WM_CLASS, xcb.XA_STRING, 0, 2**16)
                 desktops[id] = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12)
-                names[id] = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, xcb.XA_STRING, 0, 2**16)
+                names[id] = conn.core.GetProperty(0, id, self._NET_WM_NAME, 0, 0, 2**16)
+                names_alt[id] = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, 0, 0, 2**16)
                 states[id] = conn.core.GetProperty(0, id, self._NET_WM_STATE, xcb.XA_ATOM, 0, 2**16)
-                #names[id] = conn.core.GetProperty(0, id, self._NET_WM_NAME, xcb.XA_STRING, 0, 2**16)
 
         for id in classes:
             #print "new window:", id
@@ -165,6 +222,9 @@ class Tasklist(caw.widget.Widget):
             clientdesk = struct.unpack_from('I',r.value.buf())[0]
 
             r = names[id].reply()
+            r2 = names_alt[id].reply()
+            if not r.value_len:
+                r = r2
             clientname = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00")
             
             conn.core.ChangeWindowAttributes(id, xproto.CW.EventMask, [

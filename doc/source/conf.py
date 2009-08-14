@@ -28,7 +28,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.todo',
         'sphinx.ext.coverage', 'sphinx.ext.pngmath',
         'sphinx.ext.ifconfig','numpydoc', 'sphinx.ext.autosummary']
 
-autoclass_content="init"
+autoclass_content="class"
 autosummary_generate=['index', 'reference/widgets']
 #autosummary_generate=True
 

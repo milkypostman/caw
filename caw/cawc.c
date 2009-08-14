@@ -294,8 +294,6 @@ _pango_cairo_create_layout(PyObject *self, PyObject *args)
 
     printf("Resolution: %f\n", pango_cairo_context_get_resolution(pango_layout_get_context(layout)));
 
-    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
-
     return Py_BuildValue("l", layout);
 }
 
@@ -345,7 +343,7 @@ _pango_layout_set_text(PyObject *self, PyObject *args)
     }
     else
     {
-        pango_layout_set_ellipsize(layout, 0);
+        pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_NONE);
         pango_layout_set_width(layout, -1);
         pango_layout_set_alignment(layout, 0);
     }

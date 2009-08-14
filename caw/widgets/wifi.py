@@ -4,15 +4,17 @@ import re
 import os
 
 class Wifi(caw.widget.Widget):
-    """Wifi Widget"""
+    """Wifi Widget
+
+    Parameters
+    ----------
+
+    adapter : the network adapater to watch
+    """
+
     def __init__(self, adapter="ath0", fg_color=None, **kwargs):
-        """Initializes the Wifi widget
+        """Initializes the Wifi widget"""
 
-        Parameters
-        ----------
-
-        adapter : the network adapater to watch
-        """
         super(Wifi, self).__init__(**kwargs)
         self.adapter = adapter
 
