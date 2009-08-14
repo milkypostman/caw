@@ -84,13 +84,15 @@ class Tasklist(caw.widget.Widget):
         self.width_hint = -1
         self.align=dict(left=-1, center=0, right=1).get(align, -1)
 
+        self._next_focus = {}
+
 
     def init(self, parent):
         super(Tasklist, self).init(parent)
         a = self.parent.get_atoms([
             "_NET_WM_DESKTOP",
             "_NET_CURRENT_DESKTOP",
-            "_NET_CURRENT_DESKTOP",
+            "_NET_NUMBER_OF_DESKTOPS",
             "_NET_WM_NAME",
             "UTF8_STRING",
             "COMPOUND_TEXT",
@@ -104,6 +106,7 @@ class Tasklist(caw.widget.Widget):
 
         self._update_clients()
         self._update_current_desktop()
+        self._update_number_of_desktops()
 
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_desktop)
         self.parent.atoms[self._NET_CLIENT_LIST].append(self._update_clients)
@@ -113,7 +116,18 @@ class Tasklist(caw.widget.Widget):
         self.parent.events[xproto.DestroyNotifyEvent].append(self._destroynotify)
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_current_desktop)
         self.parent.atoms[self._NET_CURRENT_DESKTOP].append(self._update_current_desktop)
+        self.parent.atoms[self._NET_NUMBER_OF_DESKTOPS].append(self._update_number_of_desktops)
         self.parent.atoms[self._NET_WM_STATE].append(self._update_state)
+
+    def _update_number_of_desktops(self, evt=None):
+        conn = self.parent.connection
+        scr = self.parent.screen
+        currc = conn.core.GetProperty(0, scr.root, self._NET_NUMBER_OF_DESKTOPS,
+                xcb.XA_CARDINAL, 0, 12)
+        currp = currc.reply()
+        self.number_of_desktops = struct.unpack_from("I", currp.value.buf())[0]
+
+        self.parent.update()
 
     def _update_current_desktop(self, evt=None):
         conn = self.parent.connection
@@ -122,7 +136,15 @@ class Tasklist(caw.widget.Widget):
                 xcb.XA_CARDINAL, 0, 12)
         currp = currc.reply()
         self.current_desktop = struct.unpack_from("I", currp.value.buf())[0]
+        nf = self._next_focus.get(self.current_desktop, 0)
+        if nf > 0:
+            self.input_focus(nf)
+            self._next_focus[self.current_desktop] = 0
+
         self.parent.update()
+
+    def input_focus(self, win):
+        self.parent.connection.core.SetInputFocus(xproto.InputFocus.Parent, win, xcb.CurrentTime)
 
     def _destroynotify(self, evt):
         id = evt.window
@@ -141,9 +163,10 @@ class Tasklist(caw.widget.Widget):
         conn.core.MapWindow(win)
 
     def _hide(self, win):
-        conn = self.parent.connection
-        event = struct.pack('BBHII5I', 33, 32, 0, win, self.WM_CHANGE_STATE, 3,0,0,0,0)
-        e = conn.core.SendEventChecked(0, win, 0xffffff, event)
+        self.parent.send_event(win, self.WM_CHANGE_STATE, 3)
+        #conn = self.parent.connection
+        #event = struct.pack('BBHII5I', 33, 32, 0, win, self.WM_CHANGE_STATE, 3,0,0,0,0)
+        #e = conn.core.SendEvent(0, win, 0xffffff, event)
         #print e.check()
         #conn.core.ChangeProperty(xproto.PropMode.Replace, win, self.WM_CHANGE_STATE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_STATE_HIDDEN))
 
@@ -179,7 +202,8 @@ class Tasklist(caw.widget.Widget):
         id = evt.window
         if id in self.clients:
             r = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12).reply()
-            if r.value_len >= 4:
+            #print "updating desktop:", id, self.clients[id]['name'], r.value_len
+            if r.value_len > 0:
                 self.clients[id]['desktop'] = struct.unpack_from('I',r.value.buf())[0]
             else:
                 del self.clients[id]
@@ -226,7 +250,7 @@ class Tasklist(caw.widget.Widget):
             if not r.value_len:
                 r = r2
             clientname = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0].strip("\x00")
-            
+
             conn.core.ChangeWindowAttributes(id, xproto.CW.EventMask, [
                         xproto.EventMask.PropertyChange|
                         xproto.EventMask.FocusChange |
@@ -241,25 +265,37 @@ class Tasklist(caw.widget.Widget):
 
             client = dict(id = id, name = clientname, desktop = clientdesk, cls=clientcls, x=0, width=0, hidden=hidden)
 
+            #print clientname, '--', client['desktop']
+
             self.clients[id] = client
         self.parent.update()
 
     def button1(self, x):
         conn = self.parent.connection
-        clients = [c for c in self.clients.itervalues() if self.alldesktops or c['desktop'] == self.current_desktop]
-        for c in self.clients.itervalues():
-            if self.alldesktops or c['desktop'] == self.current_desktop:
-                if c['x'] <= x and x < (c['x'] + c['width']):
-                    # found our client
-                    #print c['name']
-                    win = c['id']
-                    conn.core.ConfigureWindow(win, xproto.ConfigWindow.StackMode, [xproto.StackMode.Above])
-                    if c['hidden']:
-                        self._unhide(win)
-                    elif win == self.current_client:
-                        self._hide(win)
-                    else:
-                        conn.core.SetInputFocus(xproto.InputFocus.Parent, win, xcb.CurrentTime)
+        clients = [c for c in self.clients.itervalues() \
+                if (self.alldesktops and c['desktop'] < self.number_of_desktops) \
+                or c['desktop'] == self.current_desktop]
+        for c in clients:
+            if c['x'] <= x and x < (c['x'] + c['width']):
+                # found our client
+                #print c['name']
+                win = c['id']
+                desktop = c['desktop']
+
+                if desktop != self.current_desktop:
+                    scr = self.parent.screen
+                    self.parent.send_event_checked(scr.root, self._NET_CURRENT_DESKTOP, desktop).check()
+                    conn.flush()
+
+                conn.core.ConfigureWindow(win, xproto.ConfigWindow.StackMode, [xproto.StackMode.Above])
+                if c['hidden']:
+                    self._unhide(win)
+                elif win == self.current_client:
+                    self._hide(win)
+                elif desktop != self.current_desktop:
+                    self._next_focus[desktop] = win
+                else:
+                    self.input_focus(win)
 
 
     def _output(self):
@@ -272,7 +308,9 @@ class Tasklist(caw.widget.Widget):
                     c['desktop'] == self.current_desktop))
 
     def draw(self):
-        clients = [c for c in self.clients.itervalues() if self.alldesktops or c['desktop'] == self.current_desktop]
+        clients = [c for c in self.clients.itervalues() \
+                if c['desktop'] == self.current_desktop or \
+                (self.alldesktops and c['desktop'] < self.number_of_desktops)]
         availwidth = self.width - (len(clients)+1) * (self.spacing)
 
         percli = availwidth

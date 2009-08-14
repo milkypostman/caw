@@ -50,17 +50,19 @@ class Systray(caw.widget.Widget):
 
         #print "Systray window:", self.window
 
-        # have to manually build the event!
-        response_type = 33 # XCB_CLIENT_MESSAGE
-        format = 32
-        sequence = 0
-        window = scr.root
-        type = self.MANAGER
-        data = [xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0]
-        event = struct.pack('BBHII5I', response_type, format, sequence, window, type, xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0)
-
         e = conn.core.SetSelectionOwnerChecked(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
-        e = conn.core.SendEventChecked(0, scr.root, 0xffffff, event)
+        self.parent.send_event(scr.root, self.MANAGER, xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window)
+
+        # have to manually build the event!
+        #response_type = 33 # XCB_CLIENT_MESSAGE
+        #format = 32
+        #sequence = 0
+        #window = scr.root
+        #type = self.MANAGER
+        #data = [xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0]
+        #event = struct.pack('BBHII5I', response_type, format, sequence, window, type, xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window, 0, 0)
+
+        #e = conn.core.SendEvent(0, scr.root, 0xffffff, event)
         # FIXME: CONFIRM THIS WORKS
         #e = conn.core.ChangeProperty(xproto.PropMode.Replace, scr.root, self._NET_SYSTEM_TRAY_S0, self.MANAGER, 32, 1, struct.pack("I",self.window))
 

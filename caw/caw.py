@@ -364,6 +364,8 @@ class Caw:
                 # FIXME: not sure why i have to ignore this
                 # it is a fix for the system tray crashing
                 print "Bad Window:", (e.args[0].bad_value), e.args[0].major_opcode
+            except xcb.xproto.BadMatch as e:
+                print "Bad Match:", (e.args[0].bad_value), e.args[0].major_opcode
             except IOError:
                 break
 
@@ -478,6 +480,14 @@ class Caw:
                 #print w
                 w.button_press(e.detail, e.event_x)
                 break
+
+    def send_event(self, win, type, d1, d2=0, d3=0, d4=0, d5=0):
+        event = struct.pack('BBHII5I', 33, 32, 0, win, type, d1, d2, d3, d4, d5)
+        return self.connection.core.SendEvent(0, win, 0xffffff, event)
+
+    def send_event_checked(self, win, type, d1, d2=0, d3=0, d4=0, d5=0):
+        event = struct.pack('BBHII5I', 33, 32, 0, win, type, d1, d2, d3, d4, d5)
+        return self.connection.core.SendEventChecked(0, win, 0xffffff, event)
 
     def _property_notify(self, e):
         #print "************ PROPERTY NOTIFY ************"
