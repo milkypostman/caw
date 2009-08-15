@@ -13,6 +13,8 @@ class Desktop(caw.widget.Widget):
     normal_fg : normal desktop color
 
     current_fg : current desktop color
+
+    showall : show all desktop names (default False -- only show current desktop)
     """
     def __init__(self, fg=None, current_fg=None, showall=False, **kwargs):
         super(Desktop, self).__init__(**kwargs)
