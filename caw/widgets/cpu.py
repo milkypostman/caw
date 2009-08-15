@@ -13,19 +13,35 @@ class CPU(caw.widget.Widget):
     words, the class functions update all interfaces and then set the values of class instances
     based on what interface has been updated.  This way the file is read once per update rather
     than mulitple times per update.
+
+    Parameters
+    -----------
+
+    fg : alias for normal_fg
+
+    normal_border : normal foreground for the cpu stat
+
+    medium_fg : foreground for cpu when medium is met
+
+    high_fg : foreground for cpu when the high is met
+
+    medium : medium threshold
+
+    high : high threshold
+
     """
 
     _initialized = False
     _widgets = collections.defaultdict(list)
 
-    def __init__(self, cpu=0, fg=None, med_fg=0xffff00, high_fg=0xff0000, med_threshold=40, high_threshold=80, show_percent=False, **kwargs):
+    def __init__(self, cpu=0, fg=None, medium_fg=0xffff00, high_fg=0xff0000, medium=40, high=80, show_percent=False, **kwargs):
         super(CPU, self).__init__(**kwargs)
         self.cpu = cpu
         self.normal_fg = kwargs.get('normal_fg', fg)
-        self.med_fg = med_fg
+        self.medium_fg = medium_fg
         self.high_fg = high_fg
-        self.med_threshold = med_threshold
-        self.high_threshold = high_threshold
+        self.medium = medium
+        self.high = high
         self.show_percent = show_percent
 
     def init(self, parent):
@@ -95,10 +111,10 @@ class CPU(caw.widget.Widget):
     def draw(self):
         val = self._data['usage']
         fg = self.normal_fg
-        if val > self.high_threshold:
+        if val > self.high:
             fg = self.high_fg
-        elif val > self.med_threshold:
-            fg = self.med_fg
+        elif val > self.medium:
+            fg = self.medium_fg
 
         if self.show_percent:
             self.parent.draw_text("%d%%" % self._data['usage'], fg=fg)

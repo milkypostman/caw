@@ -11,20 +11,35 @@ class Net(caw.widget.Widget):
     words, the class functions update all interfaces and then set the values of class instances
     based on what interface has been updated.  This way the file is read once per update rather
     than mulitple times per update.
+
+    Parameters
+    ----------
+
+    iface : network interface to monitor
+
+    stat : stat to show [ up | down ]
+
+    fg : alias for normal_fg
+
+    normal_fg : normal foreground
+
+    medium_fg : color when network speed exceeds 'medium'
+
+    high_fg : color when network speed exceeds 'high'
     """
 
     _initialized = False
     _widgets = collections.defaultdict(list)
 
-    def __init__(self, iface='eth0', stat='down', fg=None, med_fg=0xffff00, high_fg=0xff0000, med_threshold=100, high_threshold=500, **kwargs):
+    def __init__(self, iface='eth0', stat='down', fg=None, medium_fg=0xffff00, high_fg=0xff0000, medium=100, high=500, **kwargs):
         super(Net, self).__init__(**kwargs)
         self.iface = iface
         self.stat = stat
         self.normal_fg = kwargs.get('normal_fg', fg)
-        self.med_fg = med_fg
+        self.medium_fg = medium_fg
         self.high_fg = high_fg
-        self.med_threshold = med_threshold
-        self.high_threshold = high_threshold
+        self.medium = medium
+        self.high = high
         self._data = collections.defaultdict(int)
 
     def init(self, parent):
@@ -99,10 +114,10 @@ class Net(caw.widget.Widget):
     def draw(self):
         val = self._data[self.stat]
         fg = self.normal_fg
-        if val > self.high_threshold:
+        if val > self.high:
             fg = self.high_fg
-        elif val > self.med_threshold:
-            fg = self.med_fg
+        elif val > self.medium:
+            fg = self.medium_fg
 
         self.parent.draw_text("%d" % self._data[self.stat], fg=fg)
 

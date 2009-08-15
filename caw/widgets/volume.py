@@ -9,12 +9,39 @@ except ImportError:
 import ossaudiodev
 
 class Volume(caw.widget.Widget):
-    def __init__(self, device='Master', med_threshold=30, high_threshold=70, step=1, driver='alsa', show_percent=False, **kwargs):
+    """Volume Widgets
+
+    Parameter
+    ----------
+
+    device : audio device
+
+    medium : medium volume threshold
+
+    high : high volume threshold
+
+    fg : alias for low_fg
+
+    low_fg : color when volume is lower than 'medium'
+
+    medium_fg : color when the volume widget exceeds 'medium'
+
+    high_fg : color when the volume widget exceeds 'high'
+
+    show_percent : bool denoting whether to show the percentage symbol
+    """
+
+    def __init__(self, device='Master', medium=30, high=70, step=1, driver='alsa', show_percent=False, **kwargs):
         super(Volume, self).__init__(**kwargs)
         self.device = device
-        self.med_threshold = med_threshold
-        self.high_threshold = high_threshold
+        self.medium = medium
+        self.high = high
         self.step = step
+
+        self.low_fg = kwargs.get('low_fg', 0xcccccc)
+        self.med_fg = kwargs.get('med_fg', 0x00cc00)
+        self.high_fg = kwargs.get('high_fg', 0xcc0000)
+
         self.show_percent = show_percent
         if driver == 'alsa' and alsaaudio is None :
             driver = 'oss'
@@ -31,9 +58,6 @@ class Volume(caw.widget.Widget):
         self.min = 0
         self.max = 100
 
-        self.low_fg = 0xcccccc
-        self.med_fg = 0x00cc00
-        self.high_fg = 0xcc0000
         self._update()
 
     def _init_oss(self):
@@ -73,9 +97,9 @@ class Volume(caw.widget.Widget):
 
     def draw(self):
         fg = self.low_fg
-        if self.percent > self.high_threshold:
+        if self.percent > self.high:
             fg = self.high_fg
-        elif self.percent > self.med_threshold:
+        elif self.percent > self.medium:
             fg = self.med_fg
 
         self.parent.draw_text("%d" % self.percent, fg, self.x)
