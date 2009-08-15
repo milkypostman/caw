@@ -1,6 +1,5 @@
 """Wifi Widget"""
 import caw.widget
-import re
 import os
 
 class Wifi(caw.widget.Widget):
@@ -12,13 +11,13 @@ class Wifi(caw.widget.Widget):
     adapter : the network adapater to watch
     """
 
-    def __init__(self, adapter="ath0", fg_color=None, **kwargs):
+    def __init__(self, adapter="ath0", fg=None, **kwargs):
         """Initializes the Wifi widget"""
 
         super(Wifi, self).__init__(**kwargs)
         self.adapter = adapter
 
-        self.fg_color = fg_color
+        self.normal_fg = kwargs.get('normal_fg', fg)
         self.width_hint = 0
 
     def init(self, parent):
@@ -38,7 +37,7 @@ class Wifi(caw.widget.Widget):
 
     def draw(self):
         data = self.data
-        self.parent.draw_text(str(data) , self.fg_color)
+        self.parent.draw_text(str(data) , self.normal_fg)
 
 
 

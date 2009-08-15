@@ -2,7 +2,6 @@ import caw.widget
 import xcb
 import struct
 import xcb.xproto as xproto
-import time
 
 class Tasklist(caw.widget.Widget):
     """Basic tasklist.
@@ -11,7 +10,7 @@ class Tasklist(caw.widget.Widget):
     - Clicking the current task will minimized that task.
     - Clicking a minimized task will restore that window.
 
-    Properties
+    Parameters
     ------------
 
     alldesktops : show windows from all desktops (clicking currently \
@@ -25,34 +24,42 @@ class Tasklist(caw.widget.Widget):
 
     spacing : distance between tasks.
 
-    fg_color : foreground color of normal tasks (ie. tasks that are not mimized or currently selected).
+    fg : alias for normal_fg for user convenience.
 
-    fg_current : foreground color of the currently selected task.
+    normal_fg : foreground color of normal tasks (ie. tasks that are not mimized or currently selected).
 
-    fg_minimized : foreground color of minimized tasks.
+    current_fg : foreground color of the currently selected task.
 
-    bg_color : background color of normal tasks (ie. tasks that are not mimized or currently selected).
+    minimized_fg : foreground color of minimized tasks.
 
-    bg_current : background color of the currently selected task.
+    bg : alias for normal_bg for user convenience.
 
-    bg_minimized : background color of minimized tasks.
+    normal_bg : background color of normal tasks (ie. tasks that are not mimized or currently selected).
 
-    alpha_color : alpha value for the background of normal tasks [ 0 = fully transparent, 255 = opaque ]
+    current_bg : background color of the currently selected task.
 
-    alpha_current : alpha value for the background of the current task.
+    minimized_bg : background color of minimized tasks.
 
-    alpha_minimized : alpha value for the background of minimized tasks.
+    alpha : alias for normal_alpha for user convenience.
 
-    border_color : border color of normal tasks (ie. tasks that are not mimized or currently selected).
+    normal_alpha : alpha value for the background of normal tasks [ 0 = fully transparent, 255 = opaque ]
 
-    border_current : border color of the currently selected task.
+    current_alpha : alpha value for the background of the current task.
 
-    border_minimized : border color of minimized tasks.
+    minimized_alpha : alpha value for the background of minimized tasks.
+
+    border : alias for normal_border for user convenience.
+
+    normal_border : border color of normal tasks (ie. tasks that are not mimized or currently selected).
+
+    current_border : border color of the currently selected task.
+
+    minimized_border : border color of minimized tasks.
 
     border_width : width of the border (default 1)
     """
 
-    def __init__(self, alldesktops=False, align='left', padding=5, fg_color=None, fg_current=None, fg_minimized=None, bg_color=None, bg_current=None, bg_minimized=None, border_color=None, border_current=None, border_minimized=None, border_width=1, margin=0, alpha=None, alpha_current=None, alpha_minimized=None, spacing=5, **kwargs):
+    def __init__(self, alldesktops=False, align='left', padding=5, margin=0, spacing=5, **kwargs):
 
         super(Tasklist, self).__init__(**kwargs)
         self.alldesktops = alldesktops
@@ -61,31 +68,31 @@ class Tasklist(caw.widget.Widget):
         self.current_client = None
         self.trim_length = 0
 
-        self.fg_color = fg_color
-        self.fg_current = fg_current
-        self.fg_minimized = fg_minimized
-
-        self.bg_color = bg_color
-        self.bg_current = bg_current
-        self.bg_minimized = bg_minimized
-
-        self.alpha = alpha
-        self.alpha_current = alpha_current
-        self.alpha_minimized = alpha_minimized
-
-        self.border_color = border_color
-        self.border_current = border_current
-        self.border_minimized = border_minimized
-        self.border_width = border_width
-
+        self.align=dict(left=-1, center=0, right=1).get(align, -1)
         self.padding = padding
         self.margin = margin
         self.spacing = spacing
+
+        self.normal_fg = kwargs.get('normal_fg', kwargs.get('fg'))
+        self.current_fg = kwargs.get('current_fg', None)
+        self.minimized_fg = kwargs.get('minimized_fg', None)
+
+        self.normal_bg = kwargs.get('normal_bg', kwargs.get('bg'))
+        self.current_bg = kwargs.get('current_bg', None)
+        self.minimized_bg = kwargs.get('minimized_bg', None)
+
+        self.normal_alpha = kwargs.get('normal_alpha', kwargs.get('alpha'))
+        self.current_alpha = kwargs.get('current_alpha', None)
+        self.minimized_alpha = kwargs.get('minimized_alpha', None)
+
+        self.normal_border = kwargs.get('normal_border', kwargs.get('border'))
+        self.current_border = kwargs.get('current_border', None)
+        self.minimized_border = kwargs.get('minimized_border', None)
+        self.border_width = kwargs.get('border_width', None)
+
         self.width_hint = -1
-        self.align=dict(left=-1, center=0, right=1).get(align, -1)
 
         self._next_focus = {}
-
 
     def init(self, parent):
         super(Tasklist, self).init(parent)
@@ -220,7 +227,6 @@ class Tasklist(caw.widget.Widget):
                 2**16)
 
         clientsr = clientsc.reply()
-        buf = clientsr.value.buf()
         clients = struct.unpack_from('%dI' %clientsr.value_len, clientsr.value.buf(),0)
 
         classes = {}
@@ -303,8 +309,8 @@ class Tasklist(caw.widget.Widget):
             return ' '.join(
                     (c['name'] for c in self.clients.itervalues()))
 
-        return ' '.join(
-                (c['name'] for c in self.clients.itervalues() if
+        return ' '.join( \
+                (c['name'] for c in self.clients.itervalues() if \
                     c['desktop'] == self.current_desktop))
 
     def draw(self):
@@ -321,33 +327,33 @@ class Tasklist(caw.widget.Widget):
         dots = self.parent.text_width('...')
         curx = self.x + self.spacing
         for c in clients:
-            fg_color = self.fg_color
             c['x'] = curx
             c['width'] = percli
             cliavail = percli
-            bg_color = self.bg_color
-            border_color = self.border_color
-            alpha = self.alpha
+            normal_fg = self.normal_fg
+            normal_bg = self.normal_bg
+            normal_border = self.normal_border
+            normal_alpha = self.normal_alpha
             if c['id'] == self.current_client:
-                fg_color = self.fg_current
-                bg_color = self.bg_current
-                border_color = self.border_current
-                alpha = self.alpha_current
+                normal_fg = self.current_fg
+                normal_bg = self.current_bg
+                normal_border = self.current_border
+                normal_alpha = self.current_alpha
             elif c['hidden']:
-                fg_color = self.fg_minimized
-                bg_color = self.bg_minimized
-                border_color = self.border_minimized
-                alpha = self.alpha_minimized
+                normal_fg = self.minimized_fg
+                normal_bg = self.minimized_bg
+                normal_border = self.minimized_border
+                normal_alpha = self.minimized_alpha
 
-            if bg_color is not None:
-                self.parent.draw_rectangle_filled(curx, self.parent.border_width+self.margin, percli, self.parent.height - 2*self.parent.border_width-2*self.margin-1, bg_color, 255)
+            if normal_bg is not None:
+                self.parent.draw_rectangle_filled(curx, self.parent.border_width+self.margin, percli, self.parent.height - 2*self.parent.border_width-2*self.margin-1, normal_bg, 255)
 
-            if border_color is not None:
-                self.parent.draw_rectangle(curx, self.parent.border_width+self.margin, percli, self.parent.height - 2*self.parent.border_width-2*self.margin-1, border_color, 255, self.border_width)
+            if normal_border is not None:
+                self.parent.draw_rectangle(curx, self.parent.border_width+self.margin, percli, self.parent.height - 2*self.parent.border_width-2*self.margin-1, normal_border, 255, self.border_width)
 
 
-#            if border_color is not None:
-#                self.parent.draw_rectangle(curx-self.padding+self.margin, self.parent.border_width+self.margin, percli+2*self.padding, self.parent.height - 2*self.parent.border_width-2*self.margin-1, 1, border_color, alpha)
+#            if normal_border is not None:
+#                self.parent.draw_rectangle(curx-self.padding+self.margin, self.parent.border_width+self.margin, percli+2*self.padding, self.parent.height - 2*self.parent.border_width-2*self.margin-1, 1, normal_border, alpha)
 
             cliavail -= 2*self.padding
             width = self.parent.text_width(c['name'])
@@ -359,14 +365,14 @@ class Tasklist(caw.widget.Widget):
             #        x = curx + (percli - width) / 2
             #    if self.align > 0:
             #        x = curx + percli - width
-            self.parent.draw_text(c['name'], fg_color, x, cliavail, 1)
+            self.parent.draw_text(c['name'], normal_fg, x, cliavail, 1)
 #            else:
 #                cliavail -= dots
 #                trim = -1
 #                while self.parent.text_width(c['name'][:trim]) > cliavail:
 #                    trim -= 1
 ##
-#                self.parent.draw_text(c['name'][:trim] + '...', fg_color, x)
+#                self.parent.draw_text(c['name'][:trim] + '...', normal_fg, x)
             curx += percli + self.spacing
 
 

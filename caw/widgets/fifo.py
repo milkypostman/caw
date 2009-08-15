@@ -2,11 +2,10 @@ import caw.widget
 import os
 import stat
 import operator
-import collections
 from itertools import imap, izip
 
 class FIFO(caw.widget.Widget):
-    def __init__(self, filename, align="right", start_color=0xff0000, end_color=0x999999, steps=10, history=100, variable_width=True, **kwargs):
+    def __init__(self, filename, align="right", start_fg=0xff0000, end_fg=0x999999, steps=10, history=100, variable_width=True, **kwargs):
         super(FIFO, self).__init__(**kwargs)
         self.filename = filename
         self.text = ''
@@ -23,27 +22,27 @@ class FIFO(caw.widget.Widget):
         else:
             self.width_hint = self.text_width
 
-        self.colors = [end_color]
-        self.coloridx = 0
+        self.fgs = [end_fg]
+        self.fgidx = 0
 
-        srgb = (start_color >> 16,
-                start_color >> 8 & 0xff,
-                start_color & 0xff)
+        srgb = (start_fg >> 16,
+                start_fg >> 8 & 0xff,
+                start_fg & 0xff)
 
-        ergb = (end_color >> 16,
-                end_color >> 8 & 0xff,
-                end_color & 0xff)
+        ergb = (end_fg >> 16,
+                end_fg >> 8 & 0xff,
+                end_fg & 0xff)
 
         step = [ (s - e) / (steps -1) for s,e in izip(srgb, ergb) ]
 
         curcolor = ergb[:]
-        for i in xrange(steps-2):
+        for _ in xrange(steps-2):
             curcolor = [ c+s for c,s in izip(curcolor, step)]
             color = reduce(operator.ior, (curcolor[0] << 16,
                     curcolor[1] << 8,
                     curcolor[2]))
-            self.colors.append(color)
-        self.colors.append(start_color)
+            self.fgs.append(color)
+        self.fgs.append(start_fg)
 
         #self.buttons[1] = self.buttons.get(1, self.clear)
         #self.buttons[2] = self.buttons.get(2, self.clear)
@@ -77,7 +76,7 @@ class FIFO(caw.widget.Widget):
             self.historyidx = len(self.history)-1
 
             self.settext()
-            self.coloridx = len(self.colors) -1
+            self.fgidx = len(self.fgs) -1
             if not self.updating:
                 self.parent.schedule(1, self.update_coloridx)
                 self.updating = True
@@ -87,10 +86,10 @@ class FIFO(caw.widget.Widget):
         self.parent.registerfd(self.fd, self.update)
 
     def update_coloridx(self):
-        self.coloridx = max(self.coloridx-1, 0)
+        self.fgidx = max(self.fgidx-1, 0)
         self.parent.update()
 
-        if self.coloridx > 0:
+        if self.fgidx > 0:
             self.parent.schedule(1, self.update_coloridx)
         else:
             self.updating = False
@@ -104,7 +103,7 @@ class FIFO(caw.widget.Widget):
         if self.align=="center":
             x += (self.width - self.text_width) / 2
 
-        self.parent.draw_text(self.text, self.colors[self.coloridx], x)
+        self.parent.draw_text(self.text, self.fgs[self.fgidx], x)
 
     def settext(self):
         if self.history:

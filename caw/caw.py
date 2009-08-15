@@ -38,12 +38,12 @@ class Caw:
 
     edge : [0|1] edge to position the panel on. 0 = top edge, 1 = bottom edge.
 
-    fg_color : integer value for the default foreground color of the panel.  \
+    fg : integer value for the default foreground color of the panel.  \
             Can be written in hex (eg. 0xff0000 being red)
 
-    bg_color : integer value for the default background color of the panel.
+    bg : integer value for the default background color of the panel.
 
-    border_color : integer value for the border color of the panel.
+    border : integer value for the border color of the panel.
 
     border_width : width of the panel border
 
@@ -91,9 +91,9 @@ class Caw:
             self.y = self.yoffset
 
         self.above = kwargs.get('above', True)
-        self.fg_color = kwargs.get('fg_color', 0x000000)
-        self.bg_color = kwargs.get('bg_color', 0xd6d6d6)
-        self.border_color = kwargs.get('border_color', 0x606060)
+        self.fg = kwargs.get('fg', 0x000000)
+        self.bg = kwargs.get('bg', 0xd6d6d6)
+        self.border = kwargs.get('border', 0x606060)
         self.shading = kwargs.get('shading', 100)
 
         self.font_face = kwargs.get('font_face', 'Terminus')
@@ -297,7 +297,7 @@ class Caw:
             pattern = cawc.cairo_pattern_create_linear(0,0,0,height)
             step = float(height) / (len(color) - 1)
             cur = 0
-            for color in self.bg_color:
+            for color in self.bg:
                 r,g,b = self.rgb(color)
                 cawc.cairo_pattern_add_color_stop_rgba(pattern, cur, r, g, b, a)
                 cur += step
@@ -319,13 +319,13 @@ class Caw:
                 0,0,
                 self.width, self.height)
 
-        self.set_source(self._back_cairo_c, self.bg_color, self.shading, self.height)
+        self.set_source(self._back_cairo_c, self.bg, self.shading, self.height)
         cawc.cairo_set_line_width(self._back_cairo_c, 4)
         cawc.cairo_rectangle(self._back_cairo_c, 0, 0, self.width, self.height);
         cawc.cairo_fill(self._back_cairo_c)
 
         i = 0
-        r,g,b = self.rgb(self.border_color)
+        r,g,b = self.rgb(self.border)
         cawc.cairo_set_line_width(self._back_cairo_c, 1.0)
         cawc.cairo_set_source_rgba(self._back_cairo_c, r, g, b, 1.0)
         while i < self.border_width:
@@ -390,10 +390,9 @@ class Caw:
                 self._dirty_widgets = []
             elif self._dirty_widgets:
                 #print "only updating dirty widgets"
-                y = (self.height - self._font_height)/2 + self.font_yoffset
                 for dw in self._dirty_widgets:
                     self.clear(dw.x, 0, dw.width, self.height)
-                    cawc.cairo_move_to(self.cairo_c, dw.x, y)
+                    self._pangox = dw.x
                     dw.draw()
                 self._dirty_widgets = []
 
@@ -459,7 +458,7 @@ class Caw:
                 ww = varspace
             w.x = x
             w.width = ww
-            cawc.cairo_move_to(self.cairo_c, w.x, y)
+            self._pangox = x
             w.draw()
             x += ww
 
@@ -496,18 +495,21 @@ class Caw:
             #print "Found functions"
             func(e)
 
-    def draw_text(self, text, fg_color=None, x=None, width=None, align=0, ellipsize=3):
-        if fg_color is None:
-            fg_color = self.fg_color
+    def draw_text(self, text, fg=None, x=None, width=None, align=0, ellipsize=3):
+        if fg is None:
+            fg = self.fg
 
-        r,g,b = self.rgb(fg_color)
+        r,g,b = self.rgb(fg)
 
         cawc.cairo_set_source_rgb(self.cairo_c, r, g, b);
 
-        if x is not None:
-            #y =  (self.height + self._font_height)/2 + self.font_yoffset
-            y =  (self.height - self._font_height)/2 + self.font_yoffset
-            cawc.cairo_move_to(self.cairo_c, x, y)
+        y = (self.height - self._font_height)/2 + self.font_yoffset
+        if x is None:
+            x = self._pangox
+        else:
+            self._pangox = x
+
+        cawc.cairo_move_to(self.cairo_c, x, y)
 
         if width is not None and width > 0:
             cawc.pango_layout_set_text(self.layout_c, text, width, align, ellipsize)
@@ -515,6 +517,7 @@ class Caw:
             cawc.pango_layout_set_text(self.layout_c, text)
 
         cawc.pango_cairo_update_show_layout(self.cairo_c, self.layout_c)
+        self._pangox += self.text_width(text)
         #cawc.cairo_show_text(self.cairo_c, text);
 
     def text_width(self, text):

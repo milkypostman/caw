@@ -16,13 +16,13 @@ class Net(caw.widget.Widget):
     _initialized = False
     _widgets = collections.defaultdict(list)
 
-    def __init__(self, iface='eth0', stat='down', fg_color=None, med_color=0xffff00, high_color=0xff0000, med_threshold=100, high_threshold=500, show_percent=False, **kwargs):
+    def __init__(self, iface='eth0', stat='down', fg=None, med_fg=0xffff00, high_fg=0xff0000, med_threshold=100, high_threshold=500, **kwargs):
         super(Net, self).__init__(**kwargs)
         self.iface = iface
         self.stat = stat
-        self.fg_color = fg_color
-        self.med_color = med_color
-        self.high_color = high_color
+        self.normal_fg = kwargs.get('normal_fg', fg)
+        self.med_fg = med_fg
+        self.high_fg = high_fg
         self.med_threshold = med_threshold
         self.high_threshold = high_threshold
         self._data = collections.defaultdict(int)
@@ -98,13 +98,13 @@ class Net(caw.widget.Widget):
 
     def draw(self):
         val = self._data[self.stat]
-        fg_color = self.fg_color
+        fg = self.normal_fg
         if val > self.high_threshold:
-            fg_color = self.high_color
+            fg = self.high_fg
         elif val > self.med_threshold:
-            fg_color = self.med_color
+            fg = self.med_fg
 
-        self.parent.draw_text("%d" % self._data[self.stat], fg_color=fg_color)
+        self.parent.draw_text("%d" % self._data[self.stat], fg=fg)
 
 
 

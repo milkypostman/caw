@@ -3,13 +3,23 @@ import xcb
 import struct
 
 class Desktop(caw.widget.Widget):
-    def __init__(self, current_fg=None, fg=None, showall=False, **kwargs):
+    """Desktop name Widget
+
+    Parameters
+    ----------
+
+    fg : alias for normal_fg
+
+    normal_fg : normal desktop color
+
+    current_fg : current desktop color
+    """
+    def __init__(self, fg=None, current_fg=None, showall=False, **kwargs):
         super(Desktop, self).__init__(**kwargs)
         self.desktops = []
         self.current = 0
-        self.fg = fg
+        self.normal_fg = kwargs.get('normal_fg', fg)
         self.current_fg = current_fg
-        self.fg = fg
         self.showall = showall
 
     def init(self, parent):
@@ -29,13 +39,7 @@ class Desktop(caw.widget.Widget):
         self.parent.atoms[self._NET_DESKTOP_NAMES].append(self._get_desktops)
         self.parent.atoms[self._NET_NUMBER_OF_DESKTOPS].append(self._get_desktops)
         self._get_desktops()
-        #if self.fg is None:
-        #    self.fg = self.parent.fg
-        #if self.current_fg is None:
-        #    self.current_fg = self.parent.fg
 
-        #if self.current_bg is not None or self.bg is not None:
-        #    self.gc = self.parent.root.create_gc()
 
     def _get_desktops(self, *args):
         conn = self.parent.connection
@@ -82,13 +86,13 @@ class Desktop(caw.widget.Widget):
 
 
     def draw(self):
-        color = self.fg
+        color = self.normal_fg
         if self.showall:
             for i, name in enumerate(self.desktops[:self.num_desktops]):
                 if i == self.current:
                     color = self.current_fg
                 else:
-                    color = self.fg
+                    color = self.normal_fg
 
                 if i != 0:
                     self.parent.draw_text(' ')

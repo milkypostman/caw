@@ -2,15 +2,15 @@ import caw.widget
 import re
 
 class Battery(caw.widget.Widget):
-    def __init__(self, battery="BAT0", warn_color='#e7e700', low_color='#d70000', fg_color=None, **kwargs):
+    def __init__(self, battery="BAT0", fg=None, warn_fg='#e7e700', low_fg='#d70000', **kwargs):
         super(Battery, self).__init__(**kwargs)
         self.battery = battery
 
         self.re = re.compile('(.*):\W*(.*)')
         self.symbols = {'charging': '^', 'discharging': '_', 'charged': '='}
-        self.fg_color = fg_color
-        self.low_color = low_color
-        self.warn_color = warn_color
+        self.normal_fg = kwargs.get('normal_fg', fg)
+        self.low_fg = low_fg
+        self.warn_fg = warn_fg
 
     def init(self, parent):
         super(Battery, self).init(parent)
@@ -71,11 +71,11 @@ class Battery(caw.widget.Widget):
             minutesleft = 0
 
         if remaining < self.warn:
-            color = self.warn_color 
+            color = self.warn_fg 
         elif remaining < self.low:
-            color = self.low_color
+            color = self.low_fg
         else:
-            color = self.fg_color
+            color = self.normal_fg
 
         symbol = self.symbols[state]
         self.parent.draw_text("%2d:%02d %s%2d%s" % (hoursleft, minutesleft, symbol, float(remaining)/self.capacity * 100, symbol) , color)

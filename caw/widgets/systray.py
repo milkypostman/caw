@@ -1,7 +1,6 @@
 import caw.widget
 import xcb
 import xcb.xproto as xproto
-import struct
 import caw.cawc as cawc
 
 class Systray(caw.widget.Widget):
@@ -50,7 +49,7 @@ class Systray(caw.widget.Widget):
 
         #print "Systray window:", self.window
 
-        e = conn.core.SetSelectionOwnerChecked(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
+        conn.core.SetSelectionOwner(self.window, self._NET_SYSTEM_TRAY_S0, xcb.CurrentTime)
         self.parent.send_event(scr.root, self.MANAGER, xcb.CurrentTime, self._NET_SYSTEM_TRAY_S0, self.window)
 
         # have to manually build the event!
@@ -73,7 +72,6 @@ class Systray(caw.widget.Widget):
     def _destroynotify(self, event):
         #print "********* DESTROY NOTIFY **************"
         if event.window in self.tasks:
-            conn = self.parent.connection
             del self.tasks[event.window]
             self._set_width_hint()
 
@@ -120,7 +118,6 @@ class Systray(caw.widget.Widget):
         if event.window in self.tasks:
             #print 'HERES OUR WINDOW!'
             task = self.tasks[event.window]
-            conn = self.parent.connection
             self._configure_window(event.window,
                     task['x'], task['y'],
                     task['width'], task['height'])

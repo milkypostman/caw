@@ -9,11 +9,11 @@ except ImportError:
 import ossaudiodev
 
 class Volume(caw.widget.Widget):
-    def __init__(self, device='Master', med=30, high=70, step=1, driver='alsa', show_percent=False, **kwargs):
+    def __init__(self, device='Master', med_threshold=30, high_threshold=70, step=1, driver='alsa', show_percent=False, **kwargs):
         super(Volume, self).__init__(**kwargs)
         self.device = device
-        self.med = med
-        self.high = high
+        self.med_threshold = med_threshold
+        self.high_threshold = high_threshold
         self.step = step
         self.show_percent = show_percent
         if driver == 'alsa' and alsaaudio is None :
@@ -31,9 +31,9 @@ class Volume(caw.widget.Widget):
         self.min = 0
         self.max = 100
 
-        self.fglow = 0xcccccc
-        self.fgmed = 0x00cc00
-        self.fghigh = 0xcc0000
+        self.low_fg = 0xcccccc
+        self.med_fg = 0x00cc00
+        self.high_fg = 0xcc0000
         self._update()
 
     def _init_oss(self):
@@ -72,11 +72,11 @@ class Volume(caw.widget.Widget):
         self.parent.schedule(2, self._update)
 
     def draw(self):
-        fg = self.fglow
-        if self.percent > self.high:
-            fg = self.fghigh
-        elif self.percent > self.med:
-            fg = self.fgmed
+        fg = self.low_fg
+        if self.percent > self.high_threshold:
+            fg = self.high_fg
+        elif self.percent > self.med_threshold:
+            fg = self.med_fg
 
         self.parent.draw_text("%d" % self.percent, fg, self.x)
         if self.show_percent:
@@ -97,13 +97,13 @@ class Volume(caw.widget.Widget):
     #        #print "parent redraw"
     #        self.parent.redraw()
 
-    def button5(self, x):
+    def button5(self, _):
         newval =  max(self.current-self.step, self.min)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
         self.parent.update(self)
 
-    def button4(self, x):
+    def button4(self, _):
         newval =  min(self.current+self.step, self.max)
         getattr(self, "_set_" + self.driver)(newval)
         getattr(self, "_update_" + self.driver)()
