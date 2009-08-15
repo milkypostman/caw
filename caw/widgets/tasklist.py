@@ -26,33 +26,33 @@ class Tasklist(caw.widget.Widget):
 
     fg : alias for normal_fg for user convenience.
 
-    normal_fg : foreground color of normal tasks (ie. tasks that are not mimized or currently selected).
-
-    current_fg : foreground color of the currently selected task.
-
-    minimized_fg : foreground color of minimized tasks.
-
     bg : alias for normal_bg for user convenience.
-
-    normal_bg : background color of normal tasks (ie. tasks that are not mimized or currently selected).
-
-    current_bg : background color of the currently selected task.
-
-    minimized_bg : background color of minimized tasks.
 
     alpha : alias for normal_alpha for user convenience.
 
+    border : alias for normal_border for user convenience.
+
+    normal_fg : foreground color of normal tasks (ie. tasks that are not mimized or currently selected).
+
+    normal_bg : background color of normal tasks.
+
     normal_alpha : alpha value for the background of normal tasks [ 0 = fully transparent, 255 = opaque ]
+
+    normal_border : border color of normal tasks.
+
+    current_fg : foreground color of the currently selected task.
+
+    current_bg : background color of the currently selected task.
 
     current_alpha : alpha value for the background of the current task.
 
-    minimized_alpha : alpha value for the background of minimized tasks.
-
-    border : alias for normal_border for user convenience.
-
-    normal_border : border color of normal tasks (ie. tasks that are not mimized or currently selected).
-
     current_border : border color of the currently selected task.
+
+    minimized_fg : foreground color of minimized tasks.
+
+    minimized_bg : background color of minimized tasks.
+
+    minimized_alpha : alpha value for the background of minimized tasks.
 
     minimized_border : border color of minimized tasks.
 
