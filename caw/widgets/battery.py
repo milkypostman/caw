@@ -2,7 +2,7 @@ import caw.widget
 import re
 
 class Battery(caw.widget.Widget):
-    def __init__(self, battery="BAT0", fg=None, warn_fg='#e7e700', low_fg='#d70000', **kwargs):
+    def __init__(self, battery="BAT0", fg=None, warn_fg=0xe7e700, low_fg=0xd70000, **kwargs):
         super(Battery, self).__init__(**kwargs)
         self.battery = battery
 
