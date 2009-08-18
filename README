@@ -13,36 +13,54 @@ cairo 1.8.8
 
 
 Building
---
+---------
+
 python setup.py build
 
 
-Running
---
-./caw
+Install
+--------
+
+python setup.py install
 
 
 Configuration
---
-Currently configuration is done by modifying the 'caw' python file or creating
-your own, importing the caw modules and running that file.  This allows you to
-add external modules etc.
+-----------------
+
+A sample config is provided: /etc/xdg/caw/config.py
+
+for more information on widgets and configuration settings:
+http://caw.milkbox.net
 
 
-TODO
---
-Taskbar support is experimental.  It works but the truncation of long lines is
-done on the Python side and can be fairly intense.  Mainly, the truncation
-values need to be remembered or something should be done.  I don't personally
-use this feature but the truncation stuff could be put in the C module.
+Running
+--------
 
-Move text support to pango.
+caw
 
-Every widget gets updated on every redraw.  There are times when this is
-unnecessary.  We should only need to update the widgets that have changed as
-long as their width hasn't changed.
 
-There is a lot left to do.  Contributions are highly welcomed.
+
+*** Development Notes ***
+
+Running from the Build Directory
+------------------------------------
+
+1. export your PYTHONPATH to use the development path (where arch is your
+   architecture (i686 / x86_64)
+
+export PYTHONPATH=$SRC/caw/build/lib.linux-<arch>-2.6
+
+
+2. execute 'caw' or directly run your configuration file.
+
+bin/caw
+
+or
+
+python $HOME/.config/caw/config.py
+
+
+
 
 
 Notes
