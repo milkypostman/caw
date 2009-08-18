@@ -10,6 +10,7 @@ xcb-proto 1.4
 xcb-util 0.3.4
 xpyb 1.1
 cairo 1.8.8
+pango 1.24.5
 
 
 Building
@@ -42,8 +43,8 @@ caw
 
 *** Development Notes ***
 
-Running from the Build Directory
-------------------------------------
+Running from the Build Directory (GIT)
+----------------------------------------
 
 1. export your PYTHONPATH to use the development path (where arch is your
    architecture (i686 / x86_64)
@@ -51,7 +52,12 @@ Running from the Build Directory
 export PYTHONPATH=$SRC/caw/build/lib.linux-<arch>-2.6
 
 
-2. execute 'caw' or directly run your configuration file.
+2. build caw.
+
+python setup.py build
+
+
+3. execute 'caw' or directly run your configuration file.
 
 bin/caw
 
@@ -59,6 +65,11 @@ or
 
 python $HOME/.config/caw/config.py
 
+
+Make sure if you make modifications to your source you rebuild it.  I normally leave
+one terminal open to the <src> directory then run:
+
+python setup.py build && python $HOME/.config/caw/config.py
 
 
 
