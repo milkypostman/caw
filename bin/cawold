@@ -54,5 +54,25 @@ if __name__ == '__main__':
 
     # save our values
     # this acts a wrapper so we can restart our server fresh
-    # got this from paster!
-    os.execl(sys.executable, sys.executable, filename)
+    while 1:
+        # got this from paster!
+        args = [sys.executable, filename]
+        #new_environ = os.environ.copy()
+        #new_environ[_main_environ] = 'true'
+        proc = None
+        try:
+            #proc = subprocess.Popen(args, env=new_environ)
+            proc = subprocess.Popen(args)
+            exit_code = proc.wait()
+            proc = None
+            #print "EXIT ON:", exit_code
+            if exit_code != 5:
+                break
+        finally:
+            # proc has not yet been disconnected
+            if (proc is not None and hasattr(os, 'kill')):
+                import signal
+                try:
+                    os.kill(proc.pid, signal.SIGTERM)
+                except (OSError, IOError):
+                    pass

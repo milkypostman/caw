@@ -414,6 +414,7 @@ class Caw:
 
             #if self._mtime is not None and self._mtime < os.path.getmtime(self.config_file):
             if os.path.getmtime(sys.argv[0]) > self._mtime:
+                os.execl(sys.executable, sys.executable, *sys.argv)
                 sys.exit(5)
 
     def schedule(self, timeout, func):
