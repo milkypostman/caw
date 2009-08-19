@@ -30,6 +30,8 @@ Configuration
 
 A sample config is provided: /etc/xdg/caw/config.py
 
+Copy this file to: $HOME/.config/caw/config.py
+
 for more information on widgets and configuration settings:
 http://caw.milkbox.net
 

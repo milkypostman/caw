@@ -2,10 +2,10 @@
 # Maintainer: Donald Ephraim Curtis <dcurtis@gmail.com>
 # Contributor: Donald Ephraim Curtis <dcurtis@gmail.com>
 
-pkgname=caw
-pkgver=20090811
+pkgname=caw-git
+pkgver=20090819
 pkgrel=1
-pkgdesc="Lightweight infobar / panel / taskbar written in Python using the XCB library and Cairo"
+pkgdesc="Lightweight infobar / panel / taskbar written in Python using the XCB, Cairo, Pango.  (Git Version)"
 arch=('i686' 'x86_64')
 url="http://github.com/decurtis/caw"
 license=('GPL')
