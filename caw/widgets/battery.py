@@ -78,7 +78,7 @@ class Battery(caw.widget.Widget):
             color = self.normal_fg
 
         symbol = self.symbols[state]
-        self.parent.draw_text("%2d:%02d %s%2d%s" % (hoursleft, minutesleft, symbol, float(remaining)/self.capacity * 100, symbol) , color)
+        self.parent.draw_text("%d:%02d %s%2d%s" % (hoursleft, minutesleft, symbol, float(remaining)/self.capacity * 100, symbol) , color)
 
 
 
