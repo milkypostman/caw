@@ -1,0 +1,72 @@
+import caw.widget
+import collections
+import time
+import math
+
+class DaemonWidget(caw.widget.Widget):
+    """
+    This demonstrates a widget that has a single data gatherer class, and
+    multiple other widgets that display the data.  For example, the CPU widget
+    only pulls and parses CPU info a single time and stores that data in the
+    class instance itself, rather than having each widget pull and parse the
+    data.  If you have multiple CPUs, this reduces the processing required to
+    gather that data.
+
+    We use a python property to update the minimum width property of the
+    individual widgets.
+
+    The _widgets data is a list of all widgets that have been initialized by
+    the user and they get updated accordingly.
+    """
+
+    _initialized = False
+    _widgets = collections.defaultdict(list)
+
+    def __init__(self, property, **kwargs):
+        super(DaemonWidget, self).__init__(**kwargs)
+        #constructor initialization
+        self.property = property
+
+        # width_hint tells the parent how much space we want/need.  
+        # (-1 means as much as possible)
+        self.width_hint = 0
+
+    def init(self, parent):
+        super(DaemonWidget, self).init(parent)
+
+        # intialize our class cache updator (daemon)
+        if not DaemonWidget._initialized:
+            DaemonWidget._clsinit(self.parent)
+
+        DaemonWidget._widgets[self.property].append(self)
+
+    @classmethod
+    def _clsinit(cls, parent):
+        # initialize the class updator information
+        # ie. open a file for reading data for multiple child widgets
+
+    @classmethod
+    def _update(cls, timeout=3):
+        # update the global cache
+
+
+        # property = 'something'
+        for w in cls._widgets[property]:
+            w.data = cache[property]
+
+        cls._parent.schedule(timeout, cls._update)
+
+    def _get_data(self):
+        return self._data
+
+    def _set_data(self, data):
+        self._data = data
+        self.width_hint = self.parent.text_width("%d" % self._data)
+
+    data = property(_get_data, _set_data)
+
+    def draw(self):
+        # draw the text for
+
+
+

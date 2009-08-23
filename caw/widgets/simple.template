@@ -1,0 +1,42 @@
+import caw.widget
+import collections
+import time
+import math
+
+class SimpleWidget(caw.widget.Widget):
+    """
+    A SimpleWidget gets initialized, sets it's timer to update itself, and
+    displays it's data when requested.
+    """
+
+    _initialized = False
+
+    def __init__(self, property, **kwargs):
+        super(SimpleWidget, self).__init__(**kwargs)
+
+        #constructor initialization
+        self.property = property
+        self.width_hint = 0
+
+    def init(self, parent):
+        # the 'Widget' init function sets up self.parent
+        super(SimpleWidget, self).init(parent)
+
+        self.update()
+
+    def update(cls):
+        # make sure to setup the width_hint property
+        self.width_hint = X
+
+        # do some data updating (ie. in 5 seconds call self.update)
+        self.parent.schedule(5, self.update)
+
+        # tell the parent we need a redraw
+        self.parent.update()
+
+
+    def draw(self):
+        # draw the text for this widget
+
+
+
