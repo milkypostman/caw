@@ -70,6 +70,7 @@ class CPU(caw.widget.Widget):
         cls._file.seek(0)
         i = 0
         cache = cls._cache
+        #print "cpu:_update"
         for line in cls._file:
             if cls._re.match(line):
                 info = cls._sep.split(line)

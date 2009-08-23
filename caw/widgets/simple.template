@@ -9,8 +9,6 @@ class SimpleWidget(caw.widget.Widget):
     displays it's data when requested.
     """
 
-    _initialized = False
-
     def __init__(self, property, **kwargs):
         super(SimpleWidget, self).__init__(**kwargs)
 
@@ -24,7 +22,7 @@ class SimpleWidget(caw.widget.Widget):
 
         self.update()
 
-    def update(cls):
+    def update(self):
         # make sure to setup the width_hint property
         self.width_hint = X
 
