@@ -13,20 +13,30 @@ class MPDC(caw.widget.Widget):
     fg : text color of this widget
 
     play_format : format of the text to display when a song is playing. \
-            (default "%(artist)s - %(title)s") \
-            \
+            See the list of possible replacement strings below. \
+            (default "%(artist)s - %(title)s")
 
-            Possible replacement strings: \
-                    artist : artist name \
-                    title : song title \
-                    album : album name \
-                    file : filename of the song \
-                    track : current track / total tracks \
-                    date : date of the song \
-                    elapsed_min : minutes elapsed thus far \
-                    elapsed_sec : seconds into the minute elapsed \
-                    total_min : minutes of length \
-                    total_sec : seconds into the minute for total length
+        valid substitution labels: \
+
+                artist : artist name
+
+                title : song title
+
+                album : album name
+
+                file : filename of the song
+
+                track : current track / total tracks
+
+                date : date of the song
+
+                elapsed_min : minutes elapsed thus far
+
+                elapsed_sec : seconds into the minute elapsed
+
+                total_min : minutes of length
+
+                total_sec : seconds into the minute for total length
 
     pause_format : format of the text to display when paused. \
             The same formatting strings as 'play_format' are allowed. \
@@ -37,6 +47,8 @@ class MPDC(caw.widget.Widget):
     hostname : hostname to connect to
 
     port : port to connect to
+
+    There are stuff
     """
 
     _initialized = False

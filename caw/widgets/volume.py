@@ -11,7 +11,7 @@ import ossaudiodev
 class Volume(caw.widget.Widget):
     """Volume Widgets
 
-    Parameter
+    Parameters
     ----------
 
     device : audio device

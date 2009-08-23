@@ -13,6 +13,7 @@ caw.widgets
    fifo
    text
    cpu
+   mpdc
    systray
    net
    allornothing

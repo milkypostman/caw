@@ -16,8 +16,8 @@ WEATHER_NS = 'http://xml.weather.yahoo.com/ns/rss/1.0'
 class Weather(caw.widget.Widget):
     """Weather Widget
 
-    Arguments
-    ---------
+    Parameters
+    ------------
 
     zipcode : location zipcode
 
