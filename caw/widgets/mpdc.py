@@ -1,8 +1,7 @@
 import caw.widget
 import collections
-import time
-import math
 import mpd
+import socket
 
 class MPDC(caw.widget.Widget):
     """Widget to display MPD information.
