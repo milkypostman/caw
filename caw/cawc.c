@@ -165,11 +165,11 @@ _update_struts(PyObject *self, PyObject *args)
     }
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_STRUT], CARDINAL,
+            window, atoms[_NET_WM_STRUT], XCB_ATOM_CARDINAL,
             32, 4, data);
 
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE,
-            window, atoms[_NET_WM_STRUT_PARTIAL], CARDINAL,
+            window, atoms[_NET_WM_STRUT_PARTIAL], XCB_ATOM_CARDINAL,
             32, 12, data);
 
     Py_RETURN_NONE;
@@ -182,7 +182,7 @@ _set_hints(PyObject *self, PyObject *args)
     xcb_connection_t *connection;
     xcb_window_t window;
     int x, y, w, h;
-    xcb_wm_hints_t hints;
+    xcb_icccm_wm_hints_t hints;
     xcb_size_hints_t normal_hints;
     //xcb_generic_error_t *e;
 
@@ -203,27 +203,27 @@ _set_hints(PyObject *self, PyObject *args)
             */
 
     // send requests
-    xcb_get_property_cookie_t hint_c = xcb_get_wm_hints(connection, window);
-    xcb_get_property_cookie_t normal_hints_c = xcb_get_wm_normal_hints(connection, window);
+    xcb_get_property_cookie_t hint_c = xcb_icccm_get_wm_hints(connection, window);
+    xcb_get_property_cookie_t normal_hints_c = xcb_icccm_get_wm_normal_hints(connection, window);
 
 
     // set wm hints
-    xcb_get_wm_hints_reply(connection, hint_c, &hints, 0);
-    xcb_wm_hints_set_input(&hints, 0);
-    xcb_wm_hints_set_normal(&hints);
-    xcb_set_wm_hints(connection, window, &hints);
+    xcb_icccm_get_wm_hints_reply(connection, hint_c, &hints, 0);
+    xcb_icccm_wm_hints_set_input(&hints, 0);
+    xcb_icccm_wm_hints_set_normal(&hints);
+    xcb_icccm_set_wm_hints(connection, window, &hints);
 
 
     // set the normal hints
-    xcb_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
+    xcb_icccm_get_wm_normal_hints_reply(connection, normal_hints_c, &normal_hints, 0);
 
     //printf("w: %d, h: %d\n", w, h);
-    normal_hints.flags = XCB_SIZE_HINT_P_POSITION;
-    xcb_size_hints_set_position(&normal_hints, 0, x, y);
-    xcb_size_hints_set_min_size(&normal_hints, w, h);
-    xcb_size_hints_set_max_size(&normal_hints, w, h);
+    normal_hints.flags = XCB_ICCCM_SIZE_HINT_P_POSITION;
+    xcb_icccm_size_hints_set_position(&normal_hints, 0, x, y);
+    xcb_icccm_size_hints_set_min_size(&normal_hints, w, h);
+    xcb_icccm_size_hints_set_max_size(&normal_hints, w, h);
 
-    xcb_set_wm_normal_hints(connection, window, &normal_hints);
+    xcb_icccm_set_wm_normal_hints(connection, window, &normal_hints);
 
     /*
     data[0] = atoms[_NET_WM_STATE_SKIP_TASKBAR];

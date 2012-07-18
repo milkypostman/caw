@@ -13,16 +13,23 @@ except:
 
 def pkgconfig(*packages, **kw):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
-    for token in commands.getoutput("pkg-config --libs --cflags %s" % ' '.join(packages)).split():
-        kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+    packages = ' '.join(packages)
+    for flag, extra in [("--libs", "extra_link_args"),
+                        ("--cflags", "extra_compile_args"),
+                        ]:
+        for token in commands.getoutput("pkg-config %s %s" % (flag, packages)).split():
+            if token[:2] in flag_map:
+                kw.setdefault(flag_map[token[:2]], []).append(token[2:])
+            else:
+                kw.setdefault(extra, []).append(token)
     return kw
 
 # Distutils config
+extargs = pkgconfig('xcb','xcb-atom','xcb-icccm', 'cairo','pango','pangocairo',
+                    extra_compile_args=['-Wall'])
 module = Extension("caw/cawc",
                    sources            = ["caw/cawc.c"],
-                   extra_compile_args = ['-Wall'],
-                   **pkgconfig('xcb','xcb-atom','xcb-icccm','cairo','pango','pangocairo')
-                   #libraries          = ['xcb','xcb-atom','xcb-icccm','cairo','freetype2', 'x11', 'x11-xcb', 'xft'],
+                   **extargs
                    )
 
 py_modules = []
