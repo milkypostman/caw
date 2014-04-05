@@ -15,6 +15,7 @@ from caw.widgets.tasklist import Tasklist
 from caw.widgets.net import Net
 from caw.widgets.wifi import Wifi
 from caw.widgets.fifo import FIFO
+from caw.widgets.memory import Memory
 
 hostname = socket.gethostname()
 
@@ -68,6 +69,9 @@ widgets.append(Text(" : ", 0x777777))
 widgets.append(CPU(2, normal_fg=0xdddddd))
 widgets.append(Text("%", 0xaaaaaa))
 
+widgets.append(Text(" :: "))
+widgets.append(Text("Mem-", 0xff6565))
+widgets.append(Memory(fg=0xdddddd))
 widgets.append(Text(" :: "))
 
 widgets.append(Net(netdev, normal_fg=0xdddddd))
