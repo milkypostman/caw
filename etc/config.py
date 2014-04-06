@@ -63,6 +63,7 @@ widgets.append(Spacer(10))
 #widgets.append(Tasklist(alldesktops=True, normal_fg=0xcccccc, current_fg=0x0000ff, normal_border=0x555555, current_border=0x00ff00, minimized_border=0xcccccc, border_width=0))
 widgets.append(Spacer(-1))
 
+widgets.append(Text("CPU-", 0xff6565))
 widgets.append(CPU(1, normal_fg=0xdddddd))
 widgets.append(Text("%", 0xaaaaaa))
 widgets.append(Text(" : ", 0x777777))
