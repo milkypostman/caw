@@ -245,7 +245,7 @@ class Caw:
         conn = self.connection
         scr = self.screen
         cookie = conn.core.GetProperty(False, scr.root, self._XROOTPMAP_ID,
-                xcb.XA_PIXMAP, 0, 10)
+                xproto.Atom.PIXMAP, 0, 10)
 
         rep = cookie.reply()
         if len(rep.value.buf()) < 4:
@@ -257,26 +257,26 @@ class Caw:
         scr = self.screen
         win = self.window
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, xcb.XA_WM_NAME, xcb.XA_STRING, 8, len("CAW!"), "CAW!")
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, xproto.Atom.WM_NAME, xproto.Atom.STRING, 8, len("CAW!"), "CAW!")
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, xcb.XA_WM_CLASS, xcb.XA_STRING, 8, len("caw\0CAW\0"), "caw\0CAW\0")
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, xproto.Atom.WM_CLASS, xproto.Atom.STRING, 8, len("caw\0CAW\0"), "caw\0CAW\0")
 
         cawc.set_hints(self.connection_c, self.window, self.x, self.y, self.width, self.height);
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 32, 1, struct.pack("I",0xffffffff))
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_DESKTOP, xproto.Atom.CARDINAL, 32, 1, struct.pack("I",0xffffffff))
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._WIN_STATE, xcb.XA_CARDINAL, 32, 1, struct.pack("I",1))
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._WIN_STATE, xproto.Atom.CARDINAL, 32, 1, struct.pack("I",1))
 
 
         conn.core.ChangeWindowAttributes(scr.root,
                 xproto.CW.EventMask, 
                 [xproto.EventMask.PropertyChange|xproto.EventMask.StructureNotify])
 
-        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
+        conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xproto.Atom.ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))
         if self.above:
-            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
+            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xproto.Atom.ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_ABOVE))
         else:
-            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xcb.XA_ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_BELOW))
+            conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_STATE, xproto.Atom.ATOM, 32, 4, struct.pack("IIII",self._NET_WM_STATE_SKIP_TASKBAR, self._NET_WM_STATE_SKIP_PAGER, self._NET_WM_STATE_STICKY, self._NET_WM_STATE_BELOW))
 
 
     def _update_struts(self):

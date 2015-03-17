@@ -117,7 +117,7 @@ class Tasklist(caw.widget.Widget):
 
         self.parent.atoms[self._NET_WM_DESKTOP].append(self._update_desktop)
         self.parent.atoms[self._NET_CLIENT_LIST].append(self._update_clients)
-        self.parent.atoms[xcb.XA_WM_NAME].append(self._update_name)
+        self.parent.atoms[xproto.Atom.WM_NAME].append(self._update_name)
         self.parent.atoms[self._NET_WM_NAME].append(self._update_name)
         self.parent.events[xproto.FocusInEvent].append(self._update_focus)
         self.parent.events[xproto.DestroyNotifyEvent].append(self._destroynotify)
@@ -130,7 +130,7 @@ class Tasklist(caw.widget.Widget):
         conn = self.parent.connection
         scr = self.parent.screen
         currc = conn.core.GetProperty(0, scr.root, self._NET_NUMBER_OF_DESKTOPS,
-                xcb.XA_CARDINAL, 0, 12)
+                xproto.Atom.CARDINAL, 0, 12)
         currp = currc.reply()
         self.number_of_desktops = struct.unpack_from("I", currp.value.buf())[0]
 
@@ -140,7 +140,7 @@ class Tasklist(caw.widget.Widget):
         conn = self.parent.connection
         scr = self.parent.screen
         currc = conn.core.GetProperty(0, scr.root, self._NET_CURRENT_DESKTOP,
-                xcb.XA_CARDINAL, 0, 12)
+                xproto.Atom.CARDINAL, 0, 12)
         currp = currc.reply()
         self.current_desktop = struct.unpack_from("I", currp.value.buf())[0]
         nf = self._next_focus.get(self.current_desktop, 0)
@@ -175,7 +175,7 @@ class Tasklist(caw.widget.Widget):
         #event = struct.pack('BBHII5I', 33, 32, 0, win, self.WM_CHANGE_STATE, 3,0,0,0,0)
         #e = conn.core.SendEvent(0, win, 0xffffff, event)
         #print e.check()
-        #conn.core.ChangeProperty(xproto.PropMode.Replace, win, self.WM_CHANGE_STATE, xcb.XA_ATOM, 32, 1, struct.pack("I",self._NET_WM_STATE_HIDDEN))
+        #conn.core.ChangeProperty(xproto.PropMode.Replace, win, self.WM_CHANGE_STATE, xproto.Atom.ATOM, 32, 1, struct.pack("I",self._NET_WM_STATE_HIDDEN))
 
         return
 
@@ -184,7 +184,7 @@ class Tasklist(caw.widget.Widget):
         conn = self.parent.connection
         id = evt.window
         if id in self.clients:
-            r = conn.core.GetProperty(0, id, self._NET_WM_STATE, xcb.XA_ATOM, 0, 2**16).reply()
+            r = conn.core.GetProperty(0, id, self._NET_WM_STATE, xproto.Atom.ATOM, 0, 2**16).reply()
             state = struct.unpack_from('%dI' % r.value_len, r.value.buf())
             #print state
             if self._NET_WM_STATE_HIDDEN in state:
@@ -198,7 +198,7 @@ class Tasklist(caw.widget.Widget):
         if id in self.clients:
             r = conn.core.GetProperty(0, id, self._NET_WM_NAME, 0, 0, 2**16).reply()
             if not r.value_len:
-                r = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, 0, 0, 2**16).reply()
+                r = conn.core.GetProperty(0, id, xproto.Atom.WM_NAME, 0, 0, 2**16).reply()
             val = struct.unpack_from('%ds' % r.value_len, r.value.buf())[0]
             #print "updated name value:", val, r.value_len, r.value.buf()
             self.clients[id]['name'] = val.strip("\x00")
@@ -208,7 +208,7 @@ class Tasklist(caw.widget.Widget):
         conn = self.parent.connection
         id = evt.window
         if id in self.clients:
-            r = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12).reply()
+            r = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xproto.Atom.CARDINAL, 0, 12).reply()
             #print "updating desktop:", id, self.clients[id]['name'], r.value_len
             if r.value_len > 0:
                 self.clients[id]['desktop'] = struct.unpack_from('I',r.value.buf())[0]
@@ -222,7 +222,7 @@ class Tasklist(caw.widget.Widget):
         clientsc = conn.core.GetProperty(0,
                 scr.root,
                 self._NET_CLIENT_LIST,
-                xcb.XA_WINDOW,
+                xproto.Atom.WINDOW,
                 0,
                 2**16)
 
@@ -237,11 +237,11 @@ class Tasklist(caw.widget.Widget):
 
         for id in clients:
             if id not in self.clients and id != self.parent.window:
-                classes[id] = conn.core.GetProperty(0, id, xcb.XA_WM_CLASS, xcb.XA_STRING, 0, 2**16)
-                desktops[id] = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xcb.XA_CARDINAL, 0, 12)
+                classes[id] = conn.core.GetProperty(0, id, xproto.Atom.WM_CLASS, xproto.Atom.STRING, 0, 2**16)
+                desktops[id] = conn.core.GetProperty(0, id, self._NET_WM_DESKTOP, xproto.Atom.CARDINAL, 0, 12)
                 names[id] = conn.core.GetProperty(0, id, self._NET_WM_NAME, 0, 0, 2**16)
-                names_alt[id] = conn.core.GetProperty(0, id, xcb.XA_WM_NAME, 0, 0, 2**16)
-                states[id] = conn.core.GetProperty(0, id, self._NET_WM_STATE, xcb.XA_ATOM, 0, 2**16)
+                names_alt[id] = conn.core.GetProperty(0, id, xproto.Atom.WM_NAME, 0, 0, 2**16)
+                states[id] = conn.core.GetProperty(0, id, self._NET_WM_STATE, xproto.Atom.ATOM, 0, 2**16)
 
         for id in classes:
             #print "new window:", id
