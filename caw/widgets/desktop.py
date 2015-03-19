@@ -1,5 +1,6 @@
 import caw.widget
 import xcb
+import xcb.xproto as xproto
 import struct
 
 class Desktop(caw.widget.Widget):
@@ -49,7 +50,7 @@ class Desktop(caw.widget.Widget):
         totalc = conn.core.GetProperty(0,
                 scr.root,
                 self._NET_NUMBER_OF_DESKTOPS,
-                xcb.XA_CARDINAL,
+                xproto.Atom.CARDINAL,
                 0,
                 12)
 
@@ -80,7 +81,7 @@ class Desktop(caw.widget.Widget):
         conn = self.parent.connection
         scr = self.parent.screen
         currc = conn.core.GetProperty(0, scr.root, self._NET_CURRENT_DESKTOP,
-                xcb.XA_CARDINAL, 0, 12)
+                xproto.Atom.CARDINAL, 0, 12)
         currp = currc.reply()
         self.current = struct.unpack_from("I", currp.value.buf())[0]
         self.width_hint = self.parent.text_width(self._output())
