@@ -1,6 +1,10 @@
 import caw.widget
-import xcb
-import xcb.xproto as xproto
+try:
+    import xcffib as xcb
+    import xcffib.xproto as xproto
+except:
+    import xcb
+    import xcb.xproto as xproto
 import caw.cawc as cawc
 
 class Systray(caw.widget.Widget):
@@ -106,7 +110,7 @@ class Systray(caw.widget.Widget):
         return
 
         #self.parent.connection.core.ConfigureWindow(
-        #        window, 
+        #        window,
         #        (xproto.ConfigWindow.X |
         #        xproto.ConfigWindow.Y |
         #        xproto.ConfigWindow.Width |
@@ -142,4 +146,3 @@ class Systray(caw.widget.Widget):
             conn.core.MapWindow(taskwin)
             conn.flush()
             curx += task['width'] + self.spacing
-

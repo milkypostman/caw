@@ -1,7 +1,11 @@
 import select
 import collections
-import xcb
-import xcb.xproto as xproto
+try:
+    import xcffib as xcb
+    import xcffib.xproto as xproto
+except:
+    import xcb
+    import xcb.xproto as xproto
 import struct
 import array
 import sys
@@ -223,9 +227,9 @@ class Caw:
 
     def _init_atoms(self):
         a = self.get_atoms([
-                "_NET_WM_WINDOW_TYPE", 
-                "_NET_WM_WINDOW_TYPE_DOCK", 
-                "_NET_WM_WINDOW_TYPE_DESKTOP", 
+                "_NET_WM_WINDOW_TYPE",
+                "_NET_WM_WINDOW_TYPE_DOCK",
+                "_NET_WM_WINDOW_TYPE_DESKTOP",
                 "_NET_WM_DESKTOP",
                 "_NET_WM_STATE",
                 "_NET_WM_STATE_SKIP_PAGER",
@@ -269,7 +273,7 @@ class Caw:
 
 
         conn.core.ChangeWindowAttributes(scr.root,
-                xproto.CW.EventMask, 
+                xproto.CW.EventMask,
                 [xproto.EventMask.PropertyChange|xproto.EventMask.StructureNotify])
 
         conn.core.ChangeProperty(xproto.PropMode.Replace, win, self._NET_WM_WINDOW_TYPE, xproto.Atom.ATOM, 32, 1, struct.pack("I",self._NET_WM_WINDOW_TYPE_DOCK))

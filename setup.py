@@ -5,9 +5,13 @@ import commands
 
 # Check for Python Xlib
 try:
-    import xcb
+    try:
+        import xcffib
+    except:
+        import xcb
 except:
-    print "\nCaw! requires the XPYB"
+    print "\nCaw! requires xcffib or XPYB"
+    print "https://pypi.python.org/pypi/xcffib/"
     print "http://sourceforge.net/projects/python-xlib/"
     sys.exit()
 
