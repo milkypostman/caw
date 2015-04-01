@@ -1,7 +1,12 @@
 import caw.widget
-import xcb
 import struct
-import xcb.xproto as xproto
+try:
+    import xcffib as xcb
+    import xcffib.xproto as xproto
+except:
+    import xcb
+    import xcb.xproto as xproto
+
 
 class Tasklist(caw.widget.Widget):
     """Basic tasklist.
@@ -374,5 +379,3 @@ class Tasklist(caw.widget.Widget):
 ##
 #                self.parent.draw_text(c['name'][:trim] + '...', normal_fg, x)
             curx += percli + self.spacing
-
-

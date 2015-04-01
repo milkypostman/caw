@@ -1,7 +1,12 @@
 import caw.widget
-import xcb
-import xcb.xproto as xproto
 import struct
+try:
+    import xcffib as xcb
+    import xcffib.xproto as xproto
+except:
+    import xcb
+    import xcb.xproto as xproto
+
 
 class Desktop(caw.widget.Widget):
     """Desktop name Widget
@@ -65,7 +70,7 @@ class Desktop(caw.widget.Widget):
         self.num_desktops = struct.unpack_from("I", totalr.value.buf())[0]
 
         namesr = namesc.reply()
-        self.desktops = struct.unpack_from("%ds" % namesr.value_len, 
+        self.desktops = struct.unpack_from("%ds" % namesr.value_len,
                 namesr.value.buf())[0].strip("\x00").split("\x00")
 
         self._update()
@@ -103,4 +108,3 @@ class Desktop(caw.widget.Widget):
 
         else:
             self.parent.draw_text(self.desktops[self.current], self.current_fg)
-
