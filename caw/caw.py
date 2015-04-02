@@ -358,9 +358,9 @@ class Caw:
             try:
                 event = self.connection.poll_for_event()
                 #print "Event:", type(event)
-                #print "OpCode:", event.type
+                #print "OpCode:", event.response_type
                 #print "Window:", getattr(event, 'window', None)
-                if event.type == 161:
+                if event.response_type == 161:
                     event = xproto.ClientMessageEvent(event)
                 for func in self.events[type(event)]:
                     func(event)
