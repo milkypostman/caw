@@ -370,7 +370,7 @@ class Caw:
                 print "Bad Window:", (e.args[0].bad_value), e.args[0].major_opcode
             except xcb.xproto.BadMatch as e:
                 print "Bad Match:", (e.args[0].bad_value), e.args[0].major_opcode
-            except IOError:
+            except (IOError, AttributeError):
                 break
 
             #self.connection.flush()
